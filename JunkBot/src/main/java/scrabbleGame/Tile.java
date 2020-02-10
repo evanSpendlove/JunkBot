@@ -3,10 +3,9 @@ package scrabbleGame;
 /**
  * <h1>Tile Class</h1>
  * This represents a tile in Scrabble, which has an associated character and value.
- * This class was co-written by Reuben Mulligan and Cal Nolan.
  * <p></p>
- * Reuben: General enum class
- * Cal: getValue(), getInstance() methods.
+ * Team: JunkBot
+ *  * Members: Reuben Mulligan (18733589), Evan Spendlove (18492656), Cal Nolan(18355103)
  * @author Evan Spendlove
  * @version 1.0.0
  * @since 07-02-2020

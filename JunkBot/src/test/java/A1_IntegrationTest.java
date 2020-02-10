@@ -12,6 +12,9 @@ import static org.junit.jupiter.api.Assertions.*;
     Summary: This class runs all tests relating to all classes for Assignment 1
              and runs a sample integration test simulating game-play.
 
+    Team: JunkBot
+    Members: Reuben Mulligan (18733589), Evan Spendlove (18492656), Cal Nolan(18355103)
+
     Authors: Evan Spendlove, Reuben Mulligan, Cal Nolan
     Version: 1.0.0
     Since: 08-02-2020

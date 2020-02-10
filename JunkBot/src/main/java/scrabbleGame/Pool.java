@@ -9,6 +9,8 @@ import java.util.concurrent.ThreadLocalRandom;
  * The pool contains 100 tiles, each a letter in the chosen alphabet.
  * For our implementation, we are using the 26-letter english alphabet, with two additional blank tiles.
  * The pool can be reset and you can draw tiles from the pool.
+ * Team: JunkBot
+ * Members: Reuben Mulligan (18733589), Evan Spendlove (18492656), Cal Nolan(18355103)
  * @author Cal Nolan
  * @version 1.0
  * @since 07-02-2020

@@ -5,6 +5,8 @@ package scrabbleGame;
  * This class represents the Player in Scrabble.
  * The player has a username, a score and their frame (rack).
  * The class has the relevant getters and setters, and a reset() method.
+ * Team: JunkBot
+ * Members: Reuben Mulligan (18733589), Evan Spendlove (18492656), Cal Nolan(18355103)
  * @author Reuben Mulligan
  * @version 1.0.0
  * @since 07-02-2020

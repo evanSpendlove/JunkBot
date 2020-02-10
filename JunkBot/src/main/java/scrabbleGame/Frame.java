@@ -7,6 +7,8 @@ import java.util.ArrayList;
  * This class represents the Frame (Rack) in Scrabble.
  * The frame contains up to 7 tiles.
  * It has methods for removing and adding tiles.
+ * Team: JunkBot
+ * Members: Reuben Mulligan (18733589), Evan Spendlove (18492656), Cal Nolan(18355103)
  * @author Evan Spendlove
  * @version 1.0.0
  * @since 07-02-2020
