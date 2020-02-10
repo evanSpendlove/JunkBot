@@ -72,7 +72,7 @@ Using IntelliJ:
 
 &nbsp;
 ### Who did what
-see [Trello](https://trello.com/b/A4LqsqAB/backgammon)
+see [Trello](https://trello.com/b/54o8lgQ2/core-progress)
 
 | Reuben        | Evan          | Cal           |
 | ------------- | ------------- | ------------- |
