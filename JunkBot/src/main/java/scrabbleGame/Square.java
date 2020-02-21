@@ -18,7 +18,7 @@ public class Square implements java.io.Serializable
      * There is only one star at the centre of the board.
      * The other types are multipliers for letters or words.
      */
-    enum squareType {STAR, REGULAR, DB_LETTER, DB_WORD, TR_LETTER, TR_WORD}
+    public enum squareType {STAR, REGULAR, DB_LETTER, DB_WORD, TR_LETTER, TR_WORD}
 
     // Fields
     squareType type;
