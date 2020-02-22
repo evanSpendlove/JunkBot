@@ -10,6 +10,9 @@ import static org.junit.jupiter.api.Assertions.*;
     Summary: This class attempts to thoroughly test the Square Class and its methods to ensure they
              are robust and handle invalid input appropriately.
 
+    Team: JunkBot
+    Members: Reuben Mulligan (18733589), Evan Spendlove (18492656), Cal Nolan(18355103)
+
     Author: Evan Spendlove
     Version: 1.0.0
     Since: 08-02-2020
