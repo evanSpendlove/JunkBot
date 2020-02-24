@@ -465,9 +465,8 @@ public class Board
                     return null;
                 }
             }
-
-            return q;
         }
+        return q;
     }
 
 
