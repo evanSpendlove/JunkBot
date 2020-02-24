@@ -232,6 +232,288 @@ public class Board
         }
     }
 
+    /**
+     * Method to check if the first move being made is valid.
+     * Checks if it's a valid word, whether the player has the necessary tiles, and whether the word contains the central tile.
+     * @param m Pass the move that you want to check.
+     * @param p Pass the player who made the move.
+     * @return Returns a boolean indicating if its a valid move or not.
+     * @author Cal Nolan
+     */
+    private boolean checkFirstMove(Move m, Player p)
+    {
+        boolean containsStar = false;
+        Placement q;
+
+        if(!wordsPlayed.isEmpty())  { return false; }
+
+        for(int x = 0; x < m.plays.size() && containsStar == false; x++) // For each play
+        {
+            q = m.plays.get(x);
+
+            if(q.getX() == 7 && q.getY() == 7) // Checks whether any of the tiles in the word are in the middle co-ordinate, {7, 7}
+            {
+                containsStar = true; // Update boolean
+            }
+        }
+
+        return containsStar && containsRequiredLetters(m, p.getFrame()) && isValidPosition(m);
+    }
+
+    /**
+     * Method to ensure that a move is valid.
+     * Checks that the player has the necessary tiles, and that a word can go in the relevant spaces
+     * @param m Pass the move that you want to check.
+     * @param p Pass the player who made the move.
+     * @return boolean Returns a boolean which indicates if the move is valid.
+     * @author Cal Nolan
+     */
+    private boolean checkValidMove(Move m, Player p)
+    {
+        return containsRequiredLetters(m, p.getFrame()) && checkValidPlacement(m);
+    }
+
+    /**
+     * Checks that all of the letters in a word are in the relevant players Frame.
+     * @param m Pass the move that you want to check.
+     * @param f Pass the frame of the player who made the move.
+     * @return boolean Returns a boolean indicating if the frame contains the required letters for the move.
+     * @author Cal Nolan
+     */
+    private boolean containsRequiredLetters(Move m, Frame f)
+    {
+        for(int x=0;x<m.plays.size();x++)
+        {
+            //Checks whether each of the tiles in the word exist in the frame
+            if(!f.containsTile(m.plays.get(x).getLetter()))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+
+    /**
+     * Checks that all of the tiles are placed along one axis, consistent with the direction indicated.
+     * @param m Pass the move that you wish to verify.
+     * @return boolean Returns true if the word is inline with the direction stated, else false.
+     * @author Cal Nolan
+     */
+    private boolean inLine(Move m)
+    {
+        if(m.getDirection() == 0) // Horizontal, so Y is constant
+        {
+            for(int i = 0; i < m.getPlays().size(); i++) // For each play
+            {
+                if(m.getPlays().get(i).getY() != m.getPlays().get(0).getY()) // Check the Y is inline
+                {
+                    return false;
+                }
+            }
+        }
+        else // Vertical, so x is constant
+        {
+            for(int i = 0; i < m.getPlays().size(); i++) // For each play
+            {
+                if(m.getPlays().get(i).getX() != m.getPlays().get(0).getX()) // Check the X is inline
+                {
+                    return false;
+                }
+            }
+        }
+
+        return isConnected(m);
+    }
+
+
+    /**
+     * Checks that each tile to be placed is connected (i.e. not more than one unit in x or y away from the previous) to the previous tile.
+     * Also handles hooks by bypassing that letter.
+     * @param m Pass the move that you wish to verify.
+     * @return boolean Returns true if the word is connected, else false.
+     * @author Cal Nolan
+     */
+    private boolean isConnected(Move m)
+    {
+        List<Placement> hook = getHook(m);
+
+        // If hooked
+        if(hook != null)
+        {
+            int targetValue = 0;
+            int actualValue = 0;
+            int hookOffset = 0;
+
+            // If horizontal
+            if(m.getDirection() == 0)
+            {
+                for(int i = 0; i < m.getPlays().size(); i++)
+                {
+                    actualValue = m.getPlays().get(i).getX();
+                    targetValue = m.getPlays().get(0).getX() + i;
+
+                    // First, check if we are looking at the hook
+                    while(targetValue == hook.get(hookOffset).getX())
+                    {
+                        hookOffset += 1; // Bypass this check
+                    }
+
+                    targetValue += hookOffset;
+
+                    hookOffset=0;
+
+                    if(actualValue != targetValue)
+                    {
+                        return false;
+                    }
+                }
+            }
+            else // Vertical
+            {
+                for(int i = 0; i < m.getPlays().size(); i++)
+                {
+                    actualValue = m.getPlays().get(i).getY();
+                    targetValue = m.getPlays().get(0).getY() + i;
+
+                    // First, check if we are looking at the hook
+                    while(targetValue == hook.get(hookOffset).getY())
+                    {
+                        hookOffset += 1; // Bypass this check
+                    }
+
+                    targetValue += hookOffset;
+
+                    hookOffset=0;
+
+                    if(actualValue != targetValue)
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+        else
+        {
+            if(m.getDirection() == 0) // If horizontal
+            {
+                for(int i = 0; i < m.getPlays().size(); i++)
+                {
+                    if(m.getPlays().get(i).getX() != m.getPlays().get(0).getX() + i)
+                    {
+                        return false;
+                    }
+                }
+            }
+            else // Vertical
+            {
+                for(int i = 0; i < m.getPlays().size(); i++)
+                {
+                    if(m.getPlays().get(i).getY() != m.getPlays().get(0).getY() + i)
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Method to check that a placed word is connected to another word, if it isn't the first word played.
+     * Checks the direction of the word, and if there are any tiles beside, after , or before it.
+     * @param m Pass the move for which you want to find the hook.
+     * @return Placement Returns null if an error occurred, else returns the Placement of the hook (coordinates and letter).
+     * @author Cal Nolan
+     */
+    private List<Placement> getHook(Move m) {
+        // Variables for storing coordinates and value of hook
+        int x = -1, y = -1, count = 0;
+        char c;
+        List<Placement> q = new ArrayList<>();
+
+        for (int i = 0; i < m.getPlays().size() - 1; i++) {
+            int difX = m.getPlays().get(i + 1).getX() - m.getPlays().get(i).getX(); // Check X
+            int difY = m.getPlays().get(i + 1).getY() - m.getPlays().get(i).getY(); // Check Y
+
+            if (difX > 1) {
+                for (count = 0; count < difX; count++) {
+                    x = m.getPlays().get(i).getX() + 1;
+                    y = m.getPlays().get(i).getY();
+
+                    c = board[y][x].tile.character();
+                    q.add(new Placement(x, y, c));
+                }
+            } else if (difY > 1) {
+                for (count = 0; count < difX; count++) {
+                    x = m.getPlays().get(i).getX();
+                    y = m.getPlays().get(i).getY() + 1;
+
+                    c = board[y][x].tile.character();
+                    q.add(new Placement(x, y, c));
+                }
+            }
+
+            if (x == -1 && y == -1) {
+                return null; // No hook
+            }
+
+            for (count = 0; count < q.size(); count++) {
+
+                if (!board[q.get(count).getY()][q.get(count).getX()].isOccupied()) {
+                    return null;
+                }
+            }
+
+            return q;
+        }
+    }
+
+
+    /**
+    * Method to handle the first word placed in a game.
+    * Calls checkFirstMove to check if the word is valid, and then adds the word to the board.
+    * @param m Pass the move that you wish to place on the board.
+    * @param p Pass the player who made the move so their score can be updated.
+    * @return int Returns 2 if the move is successfully placed (also valid), and -1 if not placed.
+    * @author Cal Nolan
+    */
+    public int placeFirstWord(Move m, Player p){
+        // If checkFirstMove returns true, the word can be played.
+        if(checkFirstMove(m, p))
+        {
+            addWordToBoard(m, p);
+            return 2;
+        }
+        else {
+            return -1; // Return error code since this isn't a valid placement
+        }
+    }
+
+
+    /**
+     * Method to add a word to the board
+     * Calculates score, and updates the squares to have tiles placed on them
+     * @param m Pass the move that you wish to place on the board.
+     * @param p Pass the player who made the move so their score can be updated.
+     * @author Cal Nolan
+     */
+    private void addWordToBoard(Move m, Player p){
+        calculateScore(m)
+
+        // Set each tile played on the relevant square, and set each tile to REGULAR type
+
+        for(int x = 0; x < m.plays.size(); x++)
+        {
+            Placement q = m.plays.get(x);
+            board[q.getY()][q.getX()].setTile(Tile.getInstance(q.getLetter()));
+            board[q.getY()][q.getX()].setType(Square.squareType.REGULAR);
+        }
+
+        wordsPlayed.add(m.getWord());
+    }
+
     // Calculate score
     // TODO: Complete method
     private int calculateScore(Move m)
@@ -285,6 +567,6 @@ public class Board
     }
 
     public static void main(String [] args){
-
+        System.out.println("ree");
     }
 }
