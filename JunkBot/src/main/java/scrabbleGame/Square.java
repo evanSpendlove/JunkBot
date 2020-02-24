@@ -38,8 +38,17 @@ public class Square implements java.io.Serializable
      * Setter for the square type
      * @param type Pass the type that you want to set for the square.
      */
-    public void setType(squareType type) {
-        this.type = type;
+    public void setType(squareType type)
+    {
+        if(!this.isOccupied() && type != squareType.REGULAR)
+        {
+            this.type = type;
+        }
+        else
+        {
+            throw new IllegalStateException("A Square cannot have a tile on it and have a special type.");
+        }
+
     }
 
     /**
@@ -103,6 +112,38 @@ public class Square implements java.io.Serializable
     {
         occupied = false; // Always false by default
         type = squareType.REGULAR;
+    }
+
+    @Override
+    public String toString()
+    {
+        if(isOccupied())
+        {
+            return getTile().toString();
+        }
+        else
+        {
+            switch (getType())
+            {
+                case TR_WORD:
+                    return "3W";
+
+                case TR_LETTER:
+                    return "3L";
+
+                case DB_WORD:
+                    return "2W";
+
+                case DB_LETTER:
+                    return "2L";
+
+                case STAR:
+                    return "S";
+
+                default:
+                    return "_";
+            }
+        }
     }
 
 }

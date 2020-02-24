@@ -15,10 +15,10 @@ package scrabbleGame;
  */
 public class Placement implements java.io.Serializable
 {
-    // Fields
-    private int x; // X Coordinate
-    private int y; // Y Coordinate
-    private char letter; // Letter to be placed
+    // Instance variables
+    private int x;
+    private int y;
+    private char letter;
 
     /**
      * Constructor for the Placement class.
@@ -49,13 +49,13 @@ public class Placement implements java.io.Serializable
      * @param x Pass the X coordinate you wish to set.
      */
     public void setX(int x) {
-        if(x > 0 && x < 16) // If x lies on the board
+        if(x >= 0 && x < 15) // If x lies on the board
         {
-            this.x = x - 1;  // Because we index from 0
+            this.x = x;
         }
         else
         {
-            throw new IllegalArgumentException("X must lie within the range 1 - 15 inclusive.");
+            throw new IllegalArgumentException("X must lie within the range 0 - 14 inclusive.");
         }
     }
 
@@ -73,13 +73,13 @@ public class Placement implements java.io.Serializable
      */
     public void setY(int y)
     {
-        if(y > 0 && y < 16) // If x lies on the board
+        if(y >= 0 && y < 15) // If x lies on the board
         {
-            this.y = y - 1; // Because we index from 0
+            this.y = y;
         }
         else
         {
-            throw new IllegalArgumentException("Y must lie within the range 1 - 15 inclusive.");
+            throw new IllegalArgumentException("Y must lie within the range 0 - 14 inclusive.");
         }
     }
 

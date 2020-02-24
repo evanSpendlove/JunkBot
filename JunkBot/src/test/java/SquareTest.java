@@ -10,9 +10,6 @@ import static org.junit.jupiter.api.Assertions.*;
     Summary: This class attempts to thoroughly test the Square Class and its methods to ensure they
              are robust and handle invalid input appropriately.
 
-    Team: JunkBot
-    Members: Reuben Mulligan (18733589), Evan Spendlove (18492656), Cal Nolan(18355103)
-
     Author: Evan Spendlove
     Version: 1.0.0
     Since: 08-02-2020
@@ -89,6 +86,10 @@ public class SquareTest
         }
     }
 
+    /*
+        Goal: To test that a tile cannot be placed on top of another tile.
+        Testing Method: Place a tile on a square. Now, place another tile on the same square. Check the exception thrown.
+     */
     @Test
     public void testSetTileWhenOccupied()
     {
@@ -165,6 +166,64 @@ public class SquareTest
         {
             ex.printStackTrace();
             fail("No exception should be thrown when setting the type of the object");
+        }
+    }
+
+    /*
+        Goal: To test that a square cannot be occupied and have a special type.
+        Testing Method: Add a tile to a square. Then, try and change it's type to a multiplier. Check the exception thrown.
+     */
+    @Test
+    public void testSetTypeOccupiedSquare()
+    {
+        try
+        {
+            Square s = new Square();
+
+            s.setTile(Tile.T);
+            s.setType(Square.squareType.DB_WORD);
+
+            fail("An occupied square should not have a special type.");
+        }
+        catch(Exception ex)
+        {
+            assertEquals("A Square cannot have a tile on it and have a special type.", ex.getMessage());
+        }
+    }
+
+    /*
+        Goal: To test that the toString() method works as expected.
+        Testing Method: Test the toString() method with all possible types of square.
+     */
+    @Test
+    public void testToString()
+    {
+        try
+        {
+            Square s1 = new Square();
+            assertEquals("_", s1.toString());
+
+            s1.setType(Square.squareType.DB_LETTER);
+            assertEquals("2L", s1.toString());
+
+            s1.setType(Square.squareType.STAR);
+            assertEquals("S", s1.toString());
+
+            s1.setType(Square.squareType.DB_WORD);
+            assertEquals("2W", s1.toString());
+
+            s1.setType(Square.squareType.TR_LETTER);
+            assertEquals("3L", s1.toString());
+
+            s1.setType(Square.squareType.TR_WORD);
+            assertEquals("3W", s1.toString());
+
+            s1.setTile(Tile.getInstance('A'));
+            assertEquals("A", s1.toString());
+        }
+        catch(Exception ex)
+        {
+            fail("No exception should be thrown when calling toString on Square.");
         }
     }
 
