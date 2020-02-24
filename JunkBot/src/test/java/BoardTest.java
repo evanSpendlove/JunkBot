@@ -3,6 +3,7 @@ import org.junit.jupiter.api.Test;
 import scrabbleGame.*;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -28,10 +29,48 @@ public class BoardTest
     public void testFullConstructor(){
         try{
             Board test = new Board();
-            assertTrue(true);
-        }catch(Exception ex){
+            assertEquals("3W _ _ 2L _ _ _ 3W _ _ _ 2L _ _ 3W \n" +
+                    "_ 2W _ _ _ 3L _ _ _ 3L _ _ _ 2W _ \n" +
+                    "_ _ 2W _ _ _ 2L _ 2L _ _ _ 2W _ _ \n" +
+                    "2L _ _ 2W _ _ _ 2L _ _ _ 2W _ _ 2L \n" +
+                    "_ _ _ _ 2W _ _ _ _ _ 2W _ _ _ _ \n" +
+                    "_ 3L _ _ _ 3L _ _ _ 3L _ _ _ 3L _ \n" +
+                    "_ _ 2L _ _ _ 2L _ 2L _ _ _ 2L _ _ \n" +
+                    "3W _ _ 2L _ _ _ S _ _ _ 2L _ _ 3W \n" +
+                    "_ _ 2L _ _ _ 2L _ 2L _ _ _ 2L _ _ \n" +
+                    "_ 3L _ _ _ 3L _ _ _ 3L _ _ _ 3L _ \n" +
+                    "_ _ _ _ 2W _ _ _ _ _ 2W _ _ _ _ \n" +
+                    "2L _ _ 2W _ _ _ 2L _ _ _ 2W _ _ 2L \n" +
+                    "_ _ 2W _ _ _ 2L _ 2L _ _ _ 2W _ _ \n" +
+                    "_ 2W _ _ _ 3L _ _ _ 3L _ _ _ 2W _ \n" +
+                    "3W _ _ 2L _ _ _ 3W _ _ _ 2L _ _ 3W \n", test.toString());
+        }
+        catch(Exception ex)
+        {
             fail("Board should initialise properly and not throw any errors");
         }
+    }
+
+    @Test
+    public void testFullPlay()
+    {
+        Board test = new Board();
+        ArrayList<Tile> x = new ArrayList<>();
+        for(int ew=0;ew<5;ew++)
+            x.add(Tile.getInstance('Q'));
+        x.add(Tile.getInstance('U'));
+        x.add(Tile.getInstance('E'));
+        Frame q = new Frame(x);
+        Player one = new Player("ree", 0, q);
+
+        Placement t = new Placement(7, 7, 'Q');
+        Placement t1 = new Placement(8, 7, 'u');
+        Placement t2 = new Placement(9, 7, 'e');
+        List<Placement> y= new ArrayList<>();
+        y.add(t);
+        y.add(t1);
+        y.add(t2);
+        assertEquals(2, test.placeFirstWord(new Move(y, "QUE", 0), one));
     }
 
     @Test
@@ -39,7 +78,23 @@ public class BoardTest
         try{
             Board test1 = new Board();
             Board test2 = new Board();
-            assertEquals(test1.getBoard(), test2.getBoard());
+
+            assertEquals(test1.toString(), test2.toString());
+            assertEquals("3W _ _ 2L _ _ _ 3W _ _ _ 2L _ _ 3W \n" +
+                    "_ 2W _ _ _ 3L _ _ _ 3L _ _ _ 2W _ \n" +
+                    "_ _ 2W _ _ _ 2L _ 2L _ _ _ 2W _ _ \n" +
+                    "2L _ _ 2W _ _ _ 2L _ _ _ 2W _ _ 2L \n" +
+                    "_ _ _ _ 2W _ _ _ _ _ 2W _ _ _ _ \n" +
+                    "_ 3L _ _ _ 3L _ _ _ 3L _ _ _ 3L _ \n" +
+                    "_ _ 2L _ _ _ 2L _ 2L _ _ _ 2L _ _ \n" +
+                    "3W _ _ 2L _ _ _ S _ _ _ 2L _ _ 3W \n" +
+                    "_ _ 2L _ _ _ 2L _ 2L _ _ _ 2L _ _ \n" +
+                    "_ 3L _ _ _ 3L _ _ _ 3L _ _ _ 3L _ \n" +
+                    "_ _ _ _ 2W _ _ _ _ _ 2W _ _ _ _ \n" +
+                    "2L _ _ 2W _ _ _ 2L _ _ _ 2W _ _ 2L \n" +
+                    "_ _ 2W _ _ _ 2L _ 2L _ _ _ 2W _ _ \n" +
+                    "_ 2W _ _ _ 3L _ _ _ 3L _ _ _ 2W _ \n" +
+                    "3W _ _ 2L _ _ _ 3W _ _ _ 2L _ _ 3W \n", test1.toString());
         }catch (Exception ex){
             fail("No exceptions thrown");
         }
@@ -102,7 +157,7 @@ public class BoardTest
 
             test.placeWord(m,a);
             test.resetBoard();
-            assertEquals(test.getBoard(), test2.getBoard());
+            assertEquals(test.toString(), test2.toString());
             assertEquals(test.getStatus(), test2.getStatus());
             assertEquals(test.getWordsPlayed(),test2.getWordsPlayed());
         }catch(Exception ex){
@@ -114,144 +169,245 @@ public class BoardTest
     public void testAddWord(){
 
         Board test = new Board();
+
         ArrayList<Tile> x = new ArrayList<Tile>();
+        for(int ew=0;ew<7;ew++)
+            x.add(Tile.getInstance('Q'));
+
         Frame q = new Frame(x);
         Player one = new Player("ree", 0, q);
         Placement t = new Placement(7, 7, 'Q');
+
         List<Placement> y= new ArrayList<>();
+        y.add(t);
+
         Move e = new Move(y, "Q", 0);
 
-        for(int ew=0;ew<7;ew++)
-            x.add(Tile.getInstance('Q'));
-        y.add(t);
-        test.placeFirstWord(e, one);
+        System.out.println(test.placeFirstWord(e, one));
 
-        assertEquals("Q", test.wordsPlayed.get(0));
-        assertEquals('Q', Tile.getInstance(board[7][7].getTile));
-        assertEquals(Square.squareType.REGULAR, board[7][7].getType);
+        assertEquals("Q", test.getWordsPlayed().get(0));
+        assertEquals('Q', test.getBoard()[7][7].getTile().character());
+        assertEquals(Square.squareType.REGULAR, test.getBoard()[7][7].getType());
     }
 
     @Test
-    public void testHooked(){
-
+    public void testHooked()
+    {
         Board test = new Board();
-        ArrayList<Tile> x = new ArrayList<Tile>();
+        ArrayList<Tile> x = new ArrayList<>();
+        for(int ew=0;ew<5;ew++)
+            x.add(Tile.getInstance('Q'));
+        x.add(Tile.getInstance('U'));
+        x.add(Tile.getInstance('E'));
         Frame q = new Frame(x);
         Player one = new Player("ree", 0, q);
+
         Placement t = new Placement(7, 7, 'Q');
+        Placement t1 = new Placement(8, 7, 'u');
+        Placement t2 = new Placement(9, 7, 'e');
         List<Placement> y= new ArrayList<>();
-        Move e = new Move(y, "Q", 0);
-
-        for(int ew=0;ew<7;ew++)
-            x.add(Tile.getInstance('Q'));
         y.add(t);
-        test.placeFirstWord(e, one);
+        y.add(t1);
+        y.add(t2);
+        assertEquals(2, test.placeFirstWord(new Move(y, "QUE", 0), one));
+        assertEquals("3W _ _ 2L _ _ _ 3W _ _ _ 2L _ _ 3W \n" +
+                "_ 2W _ _ _ 3L _ _ _ 3L _ _ _ 2W _ \n" +
+                "_ _ 2W _ _ _ 2L _ 2L _ _ _ 2W _ _ \n" +
+                "2L _ _ 2W _ _ _ 2L _ _ _ 2W _ _ 2L \n" +
+                "_ _ _ _ 2W _ _ _ _ _ 2W _ _ _ _ \n" +
+                "_ 3L _ _ _ 3L _ _ _ 3L _ _ _ 3L _ \n" +
+                "_ _ 2L _ _ _ 2L _ 2L _ _ _ 2L _ _ \n" +
+                "3W _ _ 2L _ _ _ Q U E _ 2L _ _ 3W \n" +
+                "_ _ 2L _ _ _ 2L _ 2L _ _ _ 2L _ _ \n" +
+                "_ 3L _ _ _ 3L _ _ _ 3L _ _ _ 3L _ \n" +
+                "_ _ _ _ 2W _ _ _ _ _ 2W _ _ _ _ \n" +
+                "2L _ _ 2W _ _ _ 2L _ _ _ 2W _ _ 2L \n" +
+                "_ _ 2W _ _ _ 2L _ 2L _ _ _ 2W _ _ \n" +
+                "_ 2W _ _ _ 3L _ _ _ 3L _ _ _ 2W _ \n" +
+                "3W _ _ 2L _ _ _ 3W _ _ _ 2L _ _ 3W \n", test.toString());
 
-        t.setX(8);
-        assertEquals(2, test.placeWord(e, one));//succeeds, as it's connected to another word
-        t.setX(11);
-        assertEquals(-1, test.placeWord(e, one));//fails, as it's disconnected
+        Placement o = new Placement(8, 6, 'D');
+        Placement o1 = new Placement(8, 8, 'E');
+
+        x.clear();
+        for(int ew=0;ew<5;ew++)
+            x.add(Tile.getInstance('Q'));
+        x.add(Tile.getInstance('D'));
+        x.add(Tile.getInstance('E'));
+        one.setFrame(new Frame(x));
+
+        List<Placement> z = new ArrayList<>();
+        z.add(o);
+        z.add(o1);
+
+        assertEquals(2, test.placeWord(new Move(z, "DUE", 1), one));
+        assertEquals("3W _ _ 2L _ _ _ 3W _ _ _ 2L _ _ 3W \n" +
+                "_ 2W _ _ _ 3L _ _ _ 3L _ _ _ 2W _ \n" +
+                "_ _ 2W _ _ _ 2L _ 2L _ _ _ 2W _ _ \n" +
+                "2L _ _ 2W _ _ _ 2L _ _ _ 2W _ _ 2L \n" +
+                "_ _ _ _ 2W _ _ _ _ _ 2W _ _ _ _ \n" +
+                "_ 3L _ _ _ 3L _ _ _ 3L _ _ _ 3L _ \n" +
+                "_ _ 2L _ _ _ 2L _ D _ _ _ 2L _ _ \n" +
+                "3W _ _ 2L _ _ _ Q U E _ 2L _ _ 3W \n" +
+                "_ _ 2L _ _ _ 2L _ E _ _ _ 2L _ _ \n" +
+                "_ 3L _ _ _ 3L _ _ _ 3L _ _ _ 3L _ \n" +
+                "_ _ _ _ 2W _ _ _ _ _ 2W _ _ _ _ \n" +
+                "2L _ _ 2W _ _ _ 2L _ _ _ 2W _ _ 2L \n" +
+                "_ _ 2W _ _ _ 2L _ 2L _ _ _ 2W _ _ \n" +
+                "_ 2W _ _ _ 3L _ _ _ 3L _ _ _ 2W _ \n" +
+                "3W _ _ 2L _ _ _ 3W _ _ _ 2L _ _ 3W \n", test.toString());
     }
 
     @Test
     public void testFirstMove(){
 
         Board test = new Board();
-        ArrayList<Tile> x = new ArrayList<Tile>();
+        ArrayList<Tile> x = new ArrayList<>();
+        for(int ew=0;ew<5;ew++)
+            x.add(Tile.getInstance('Q'));
+        x.add(Tile.getInstance('U'));
+        x.add(Tile.getInstance('E'));
         Frame q = new Frame(x);
         Player one = new Player("ree", 0, q);
+
         Placement t = new Placement(7, 7, 'Q');
+        Placement t1 = new Placement(8, 7, 'u');
+        Placement t2 = new Placement(9, 7, 'e');
         List<Placement> y= new ArrayList<>();
-        Move e = new Move(y, "Q", 0);
-
-        for(int ew=0;ew<7;ew++)
-            x.add(Tile.getInstance('Q'));
         y.add(t);
-        t.setX(8);
+        y.add(t1);
+        y.add(t2);
+        assertEquals(2, test.placeFirstWord(new Move(y, "QUE", 0), one));
+        assertEquals("3W _ _ 2L _ _ _ 3W _ _ _ 2L _ _ 3W \n" +
+                "_ 2W _ _ _ 3L _ _ _ 3L _ _ _ 2W _ \n" +
+                "_ _ 2W _ _ _ 2L _ 2L _ _ _ 2W _ _ \n" +
+                "2L _ _ 2W _ _ _ 2L _ _ _ 2W _ _ 2L \n" +
+                "_ _ _ _ 2W _ _ _ _ _ 2W _ _ _ _ \n" +
+                "_ 3L _ _ _ 3L _ _ _ 3L _ _ _ 3L _ \n" +
+                "_ _ 2L _ _ _ 2L _ 2L _ _ _ 2L _ _ \n" +
+                "3W _ _ 2L _ _ _ Q U E _ 2L _ _ 3W \n" +
+                "_ _ 2L _ _ _ 2L _ 2L _ _ _ 2L _ _ \n" +
+                "_ 3L _ _ _ 3L _ _ _ 3L _ _ _ 3L _ \n" +
+                "_ _ _ _ 2W _ _ _ _ _ 2W _ _ _ _ \n" +
+                "2L _ _ 2W _ _ _ 2L _ _ _ 2W _ _ 2L \n" +
+                "_ _ 2W _ _ _ 2L _ 2L _ _ _ 2W _ _ \n" +
+                "_ 2W _ _ _ 3L _ _ _ 3L _ _ _ 2W _ \n" +
+                "3W _ _ 2L _ _ _ 3W _ _ _ 2L _ _ 3W \n", test.toString());
 
-        assertEquals(-1, test.placeFirstWord(new Move(y, "Q", 1), one));//fails, as there is no tile on central square
+        test.resetBoard();
 
-        y.add(new Placement(7, 7, 'Q'));
+        Placement o = new Placement(8, 6, 'D');
+        Placement o1 = new Placement(8, 8, 'E');
 
-        assertEquals(2, test.placeFirstWord(new Move(y, "Q", 0), one));//passes, as there is a tile on central square
-        assertEquals(-1, test.placeFirstWord(new Move(y, "Q", 0), one));//fails, because there is already a word on the board
+        x.clear();
+        for(int ew=0;ew<5;ew++)
+            x.add(Tile.getInstance('Q'));
+        x.add(Tile.getInstance('D'));
+        x.add(Tile.getInstance('E'));
+        one.setFrame(new Frame(x));
+
+        List<Placement> z = new ArrayList<>();
+        z.add(o);
+        z.add(o1);
+
+        assertEquals(-1, test.placeWord(new Move(z, "DUE", 1), one));
     }
 
     @Test
     public void testContainsLetters()
     {
         Board test = new Board();
-        ArrayList<Tile> x = new ArrayList<Tile>();
+        ArrayList<Tile> x = new ArrayList<>();
+        for(int ew=0;ew<5;ew++)
+            x.add(Tile.getInstance('Q'));
+        x.add(Tile.getInstance('U'));
+        x.add(Tile.getInstance('E'));
         Frame q = new Frame(x);
         Player one = new Player("ree", 0, q);
+
         Placement t = new Placement(7, 7, 'Q');
+        Placement t1 = new Placement(8, 7, 'u');
+        Placement t2 = new Placement(9, 7, 'e');
         List<Placement> y= new ArrayList<>();
-        Move e = new Move(y, "Q", 0);
-
-        for(int ew=0;ew<7;ew++)
-            x.add(Tile.getInstance('Q'));
         y.add(t);
-        test.placeFirstWord(e, one);
-        t.setX(8);
+        y.add(t1);
+        y.add(t2);
+        assertEquals(2, test.placeFirstWord(new Move(y, "QUE", 0), one));
 
+        Placement o = new Placement(8, 6, 'D');
+        Placement o1 = new Placement(8, 8, 'E');
 
-        t.setLetter('R');
-        assertEquals(-1, test.placeWord(e, one));//fails, because the letter R is not in the frame
-        t.setLetter('Q');
-        assertEquals(2, test.placeWord(e, one));//passes because Q is in the frame
+        x.clear();
+        for(int ew=0;ew<5;ew++)
+            x.add(Tile.getInstance('Q'));
+        x.add(Tile.getInstance('D'));
+        x.add(Tile.getInstance('Z'));
+        one.setFrame(new Frame(x));
+
+        List<Placement> z = new ArrayList<>();
+        z.add(o);
+        z.add(o1);
+
+        assertEquals(-1, test.placeWord(new Move(z, "DUE", 1), one));
     }
 
     @Test
-    public void testConnected(){
-
+    public void testConnected()
+    {
         Board test = new Board();
-        ArrayList<Tile> x = new ArrayList<Tile>();
+        ArrayList<Tile> x = new ArrayList<>();
+        for(int ew=0;ew<5;ew++)
+            x.add(Tile.getInstance('Q'));
+        x.add(Tile.getInstance('U'));
+        x.add(Tile.getInstance('E'));
         Frame q = new Frame(x);
         Player one = new Player("ree", 0, q);
+
         Placement t = new Placement(7, 7, 'Q');
+        Placement t1 = new Placement(8, 7, 'u');
+        Placement t2 = new Placement(9, 7, 'e');
         List<Placement> y= new ArrayList<>();
-        Move e = new Move(y, "Q", 0);
-
-        for(int ew=0;ew<7;ew++)
-            x.add(Tile.getInstance('Q'));
         y.add(t);
-        Placement t2 = new Placement(9, 7, 'Q');
+        y.add(t1);
         y.add(t2);
+        assertEquals(2, test.placeFirstWord(new Move(y, "QUE", 0), one));
 
-        assertEquals(-1, test.placeFirstWord(e, one));//fails, as the two tiles aren't connected
-        t2.setX(8);
-        assertEquals(2, test.placeFirstWord(e, one));//passes, as the two tiles are connected
-        t.setX(6);
-        t2.setX(9);
-        assertEquals(2, test.placeWord(e, one));//passes, as the tiles are connected via another tile
+        Placement o = new Placement(8, 6, 'D');
+        Placement o1 = new Placement(8, 9, 'E');
+
+        x.clear();
+        for(int ew=0;ew<5;ew++)
+            x.add(Tile.getInstance('Q'));
+        x.add(Tile.getInstance('D'));
+        x.add(Tile.getInstance('E'));
+        one.setFrame(new Frame(x));
+
+        List<Placement> z = new ArrayList<>();
+        z.add(o);
+        z.add(o1);
+
+        assertEquals(-1, test.placeWord(new Move(z, "DUE", 1), one));
     }
 
     @Test
     public void testInLine(){
 
         Board test = new Board();
-        ArrayList<Tile> x = new ArrayList<Tile>();
+        ArrayList<Tile> x = new ArrayList<>();
+        for(int ew=0;ew<5;ew++)
+            x.add(Tile.getInstance('Q'));
+        x.add(Tile.getInstance('U'));
+        x.add(Tile.getInstance('E'));
         Frame q = new Frame(x);
         Player one = new Player("ree", 0, q);
+
         Placement t = new Placement(7, 7, 'Q');
+        Placement t1 = new Placement(8, 8, 'u');
+        Placement t2 = new Placement(9, 7, 'e');
         List<Placement> y= new ArrayList<>();
-        Move e = new Move(y, "Q", 0);
-
-        for(int ew=0;ew<7;ew++)
-            x.add(Tile.getInstance('Q'));
-
-        Placement t2 = new Placement(8, 7, 'Q');
-        Placement t3 = new Placement(8, 8, 'Q');
-
         y.add(t);
+        y.add(t1);
         y.add(t2);
-        y.add(t3);
-
-        assertEquals(-1, test.placeFirstWord(e, one));//fails, as the tiles aren't in a line
-
-        t3.setX(9);
-        t3.setY(7);
-
-        assertEquals(2, test.placeFirstWord(e, one));//passes, as all tiles are in a straight line
+        assertEquals(-1, test.placeFirstWord(new Move(y, "QUE", 0), one));
     }
 }

@@ -36,17 +36,24 @@ public class Square implements java.io.Serializable
 
     /**
      * Setter for the square type
-     * @param type Pass the type that you want to set for the square.
+     * @param t Pass the type that you want to set for the square.
      */
-    public void setType(squareType type)
+    public void setType(squareType t)
     {
-        if(!this.isOccupied() && type != squareType.REGULAR)
+        if(isOccupied())
         {
-            this.type = type;
+            if(t == squareType.REGULAR)
+            {
+                this.type = t;
+            }
+            else
+            {
+                throw new IllegalStateException("A Square cannot have a tile on it and have a special type.");
+            }
         }
         else
         {
-            throw new IllegalStateException("A Square cannot have a tile on it and have a special type.");
+            this.type = t;
         }
 
     }

@@ -1,11 +1,10 @@
 package scrabbleGame;
 
-import java.io.FileNotFoundException;
+import java.io.*;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
-import java.io.File;
 
 /**
  * <h1>Board Class</h1>
@@ -18,8 +17,9 @@ import java.io.File;
  *  @version 1.0.0
  *  @since 21-02-2020
  */
-public class Board
+public class Board implements java.io.Serializable
 {
+
     /**
      * Enum for storing the current status of the game.
      * WIN_X shows which player won.
@@ -41,7 +41,7 @@ public class Board
      */
     private void setBoard() throws FileNotFoundException
     {
-        File boardFile = this.getFileFromResources("/text/scrabbleBoard.txt"); // Get file
+        File boardFile = getFileFromResources("scrabbleBoard.txt"); // Get file
         Scanner scan = new Scanner(boardFile).useDelimiter(" |\n"); // New Scanner object
         String x; // String for reading in
 
@@ -69,7 +69,6 @@ public class Board
                 }
             }
         }
-        System.out.println("Board initialised \n"); // TODO: REMOVE
     }
 
     /**
@@ -137,6 +136,7 @@ public class Board
                 }
             }
             this.setBoard();
+            this.status = gameStatus.READY;
             this.wordsPlayed = new ArrayList<>(); // Initialise wordsPlayed
         }
         catch(FileNotFoundException ex)
@@ -157,6 +157,14 @@ public class Board
     {
         try
         {
+            this.board = new Square[15][15];
+
+            for(int i = 0; i < 15; i++){
+                for(int j = 0; j< 15; j++){
+                    this.board[i][j] = new Square();
+                }
+            }
+
             this.setBoard(); // Clear the board
             this.getWordsPlayed().clear(); // Clear all words played
             this.setStatus(gameStatus.READY); // Reset the game status
@@ -201,9 +209,9 @@ public class Board
                 validPosition = false; //
 
                 if(board[play.getY()][play.getX()].isOccupied()) // Check the chosen tile is not currently occupied
-            }
-            {
-                validPosition = false;
+                {
+                    validPosition = false;
+                }
             }
         }
 
@@ -293,7 +301,6 @@ public class Board
         return true;
     }
 
-
     /**
      * Checks that all of the tiles are placed along one axis, consistent with the direction indicated.
      * @param m Pass the move that you wish to verify.
@@ -326,7 +333,6 @@ public class Board
         return isConnected(m);
     }
 
-
     /**
      * Checks that each tile to be placed is connected (i.e. not more than one unit in x or y away from the previous) to the previous tile.
      * Also handles hooks by bypassing that letter.
@@ -336,7 +342,7 @@ public class Board
      */
     private boolean isConnected(Move m)
     {
-        List<Placement> hook = getHook(m);
+        ArrayList<Placement> hook = getHook(m);
 
         // If hooked
         if(hook != null)
@@ -344,6 +350,7 @@ public class Board
             int targetValue = 0;
             int actualValue = 0;
             int hookOffset = 0;
+            int hookPointer = 0;
 
             // If horizontal
             if(m.getDirection() == 0)
@@ -354,14 +361,17 @@ public class Board
                     targetValue = m.getPlays().get(0).getX() + i;
 
                     // First, check if we are looking at the hook
-                    while(targetValue == hook.get(hookOffset).getX())
+                    if(targetValue == hook.get(hookPointer).getX())
                     {
-                        hookOffset += 1; // Bypass this check
+                        hookOffset++; // Bypass this check
+
+                        if(hookPointer + 1 < hook.size())
+                        {
+                            hookPointer++;
+                        }
                     }
 
                     targetValue += hookOffset;
-
-                    hookOffset=0;
 
                     if(actualValue != targetValue)
                     {
@@ -377,14 +387,17 @@ public class Board
                     targetValue = m.getPlays().get(0).getY() + i;
 
                     // First, check if we are looking at the hook
-                    while(targetValue == hook.get(hookOffset).getY())
+                    if(targetValue == hook.get(hookPointer).getY())
                     {
-                        hookOffset += 1; // Bypass this check
+                        hookOffset++; // Bypass this check
+
+                        if(hookPointer + 1 < hook.size())
+                        {
+                            hookPointer++;
+                        }
                     }
 
                     targetValue += hookOffset;
-
-                    hookOffset=0;
 
                     if(actualValue != targetValue)
                     {
@@ -421,54 +434,54 @@ public class Board
     }
 
     /**
-     * Method to check that a placed word is connected to another word, if it isn't the first word played.
-     * Checks the direction of the word, and if there are any tiles beside, after , or before it.
+     * Method to get the hook(s) for a given move.
      * @param m Pass the move for which you want to find the hook.
-     * @return Placement Returns null if an error occurred, else returns the Placement of the hook (coordinates and letter).
+     * @return Placement Returns null if an error occurred, else returns the Placement of the hook(s) (coordinates and letter).
      * @author Cal Nolan
      */
-    private List<Placement> getHook(Move m) {
+    private ArrayList<Placement> getHook(Move m)
+    {
         // Variables for storing coordinates and value of hook
-        int x = -1, y = -1, count = 0;
+        int x = -1, y = -1;
         char c;
-        List<Placement> q = new ArrayList<>();
+        ArrayList<Placement> hooks = new ArrayList<>();
 
-        for (int i = 0; i < m.getPlays().size() - 1; i++) {
+        for(int i = 0; i < m.getPlays().size() - 1; i++)
+        {
             int difX = m.getPlays().get(i + 1).getX() - m.getPlays().get(i).getX(); // Check X
             int difY = m.getPlays().get(i + 1).getY() - m.getPlays().get(i).getY(); // Check Y
 
-            if (difX > 1) {
-                for (count = 0; count < difX; count++) {
-                    x = m.getPlays().get(i).getX() + 1;
-                    y = m.getPlays().get(i).getY();
+            if(difX == 2)
+            {
+                x = m.getPlays().get(i).getX() + 1;
+                y = m.getPlays().get(i).getY();
 
+                if(board[y][x].isOccupied())
+                {
                     c = board[y][x].tile.character();
-                    q.add(new Placement(x, y, c));
-                }
-            } else if (difY > 1) {
-                for (count = 0; count < difX; count++) {
-                    x = m.getPlays().get(i).getX();
-                    y = m.getPlays().get(i).getY() + 1;
-
-                    c = board[y][x].tile.character();
-                    q.add(new Placement(x, y, c));
+                    hooks.add(new Placement(x, y, c));
                 }
             }
+            else if(difY == 2)
+            {
+                x = m.getPlays().get(i).getX();
+                y = m.getPlays().get(i).getY() + 1;
 
-            if (x == -1 && y == -1) {
-                return null; // No hook
-            }
-
-            for (count = 0; count < q.size(); count++) {
-
-                if (!board[q.get(count).getY()][q.get(count).getX()].isOccupied()) {
-                    return null;
+                if(board[y][x].isOccupied())
+                {
+                    c = board[y][x].tile.character();
+                    hooks.add(new Placement(x, y, c));
                 }
             }
         }
-        return q;
-    }
 
+        if(hooks.size() == 0) // If no hooks were added
+        {
+            return null;
+        }
+
+        return hooks;
+    }
 
     /**
     * Method to handle the first word placed in a game.
@@ -490,7 +503,6 @@ public class Board
         }
     }
 
-
     /**
      * Method to add a word to the board
      * Calculates score, and updates the squares to have tiles placed on them
@@ -499,7 +511,7 @@ public class Board
      * @author Cal Nolan
      */
     private void addWordToBoard(Move m, Player p){
-        calculateScore(m)
+        calculateScore(m);
 
         // Set each tile played on the relevant square, and set each tile to REGULAR type
 
@@ -541,6 +553,32 @@ public class Board
         }
     }
 
+    /**
+     * Returns a user-friendly string representation of the board.
+     * @return String Returns the string representation of the board.
+     * @author Evan Spendlove
+     */
+    @Override
+    public String toString()
+    {
+        String print = "";
+
+        for(int i = 0; i < 15; i++)
+        {
+            for(int j = 0; j < 15; j++)
+            {
+                print += board[i][j].toString() + " ";
+
+                if(j == 14)
+                {
+                    print += "\n";
+                }
+            }
+        }
+
+        return print;
+    }
+
     // Utility Methods
 
     /**
@@ -552,7 +590,38 @@ public class Board
      */
     private File getFileFromResources(String fileName){
 
-        URL resource = this.getClass().getResource(fileName);
+        File file = null;
+        URL res = getClass().getClassLoader().getResource(fileName);
+
+        System.out.println(res);
+
+        try {
+                InputStream input = getClass().getClassLoader().getResourceAsStream(fileName);
+                file = File.createTempFile("tempfile", ".tmp");
+                OutputStream out = new FileOutputStream(file);
+                int read;
+                byte[] bytes = new byte[1024];
+
+                while ((read = input.read(bytes)) != -1)
+                {
+                    out.write(bytes, 0, read);
+                }
+                out.close();
+                file.deleteOnExit();
+            }
+        catch (IOException ex)
+        {
+            ex.printStackTrace();
+        }
+
+        return file;
+
+        /*
+        URL resource = this.getClass().getClassLoader().getResource(fileName);
+
+
+
+        System.out.println(resource.toString());
 
         if(resource == null)
         {
@@ -563,9 +632,7 @@ public class Board
         {
             return new File(resource.getFile());
         }
-    }
 
-    public static void main(String [] args){
-        System.out.println("ree");
+         */
     }
 }

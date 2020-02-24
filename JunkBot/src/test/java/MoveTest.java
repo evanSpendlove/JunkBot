@@ -23,23 +23,6 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 public class MoveTest
 {
-    // Instance variables for the setUp method
-    ArrayList<Placement> ply;
-    Move m;
-
-    @BeforeEach
-    void setUp()
-    {
-        ply = new ArrayList<>();
-
-        Placement p1 = new Placement(8, 6, 'D');
-        Placement p2 = new Placement(8, 8, 'E');
-
-        ply.add(p1);
-        ply.add(p2);
-
-        m = new Move(ply, "DUE", 1);
-    }
 
     /*
         Goal: To test that the constructor for the Move class works as expected.
@@ -50,6 +33,19 @@ public class MoveTest
     {
         try
         {
+            ArrayList<Placement> ply;
+            Move m;
+
+            ply = new ArrayList<>();
+
+            Placement p1 = new Placement(8, 6, 'D');
+            Placement p2 = new Placement(8, 8, 'E');
+
+            ply.add(p1);
+            ply.add(p2);
+
+            m = new Move(ply, "DUE", 1);
+
             assertEquals("DUE", m.getWord());
             assertEquals(1, m.getDirection());
             assertEquals(0, m.getScore());
@@ -71,7 +67,10 @@ public class MoveTest
     {
         try
         {
-            ply.clear();
+            ArrayList<Placement> ply;
+            Move m;
+
+            ply = new ArrayList<>();
 
             Move zeroPlays = new Move(ply, "EMPTY", 0);
 
@@ -92,6 +91,17 @@ public class MoveTest
     {
         try
         {
+            ArrayList<Placement> ply;
+            Move m;
+
+            ply = new ArrayList<>();
+
+            Placement p1 = new Placement(8, 6, 'D');
+            Placement p2 = new Placement(8, 8, 'E');
+
+            ply.add(p1);
+            ply.add(p2);
+
             while(ply.size() < 10)
             {
                 ply.add(new Placement(3, 3, 'E'));
@@ -116,6 +126,17 @@ public class MoveTest
     {
         try
         {
+            ArrayList<Placement> ply;
+            Move m;
+
+            ply = new ArrayList<>();
+
+            Placement p1 = new Placement(8, 6, 'D');
+            Placement p2 = new Placement(8, 8, 'E');
+
+            ply.add(p1);
+            ply.add(p2);
+
             Move invalidDir = new Move(ply, "INVALIDDIR", 3);
 
             fail("A Move should only be constructed with a direction value of 1 or 0.");
@@ -135,6 +156,17 @@ public class MoveTest
     {
         try
         {
+            ArrayList<Placement> ply;
+            Move m;
+
+            ply = new ArrayList<>();
+
+            Placement p1 = new Placement(8, 6, 'D');
+            Placement p2 = new Placement(8, 8, 'E');
+
+            ply.add(p1);
+            ply.add(p2);
+
             Move blankWord = new Move(ply, "", 1);
 
             fail("A Move cannot be constructed with a blank word.");
@@ -154,6 +186,19 @@ public class MoveTest
     {
         try
         {
+            ArrayList<Placement> ply;
+            Move m;
+
+            ply = new ArrayList<>();
+
+            Placement p1 = new Placement(8, 6, 'D');
+            Placement p2 = new Placement(8, 8, 'E');
+
+            ply.add(p1);
+            ply.add(p2);
+
+            m = new Move(ply, "DUE", 1);
+
             assertEquals("DUE", m.getWord());
         }
         catch(Exception ex)
@@ -171,6 +216,19 @@ public class MoveTest
     {
         try
         {
+            ArrayList<Placement> ply;
+            Move m;
+
+            ply = new ArrayList<>();
+
+            Placement p1 = new Placement(8, 6, 'D');
+            Placement p2 = new Placement(8, 8, 'E');
+
+            ply.add(p1);
+            ply.add(p2);
+
+            m = new Move(ply, "DUE", 1);
+
             assertEquals(1, m.getDirection());
         }
         catch(Exception ex)
@@ -188,6 +246,19 @@ public class MoveTest
     {
         try
         {
+            ArrayList<Placement> ply;
+            Move m;
+
+            ply = new ArrayList<>();
+
+            Placement p1 = new Placement(8, 6, 'D');
+            Placement p2 = new Placement(8, 8, 'E');
+
+            ply.add(p1);
+            ply.add(p2);
+
+            m = new Move(ply, "DUE", 1);
+
             assertEquals(ply, m.getPlays());
         }
         catch(Exception ex)
@@ -205,6 +276,19 @@ public class MoveTest
     {
         try
         {
+            ArrayList<Placement> ply;
+            Move m;
+
+            ply = new ArrayList<>();
+
+            Placement p1 = new Placement(8, 6, 'D');
+            Placement p2 = new Placement(8, 8, 'E');
+
+            ply.add(p1);
+            ply.add(p2);
+
+            m = new Move(ply, "DUE", 1);
+
             assertEquals(0, m.getScore());
         }
         catch(Exception ex)
@@ -222,6 +306,19 @@ public class MoveTest
     {
         try
         {
+            ArrayList<Placement> ply;
+            Move m;
+
+            ply = new ArrayList<>();
+
+            Placement p1 = new Placement(8, 6, 'D');
+            Placement p2 = new Placement(8, 8, 'E');
+
+            ply.add(p1);
+            ply.add(p2);
+
+            m = new Move(ply, "DUE", 1);
+
             assertFalse(m.isBingo());
 
             for(int i = 0; i < 5; i++) // Add 5 new placements to the list
@@ -248,6 +345,19 @@ public class MoveTest
     {
         try
         {
+            ArrayList<Placement> ply;
+            Move m;
+
+            ply = new ArrayList<>();
+
+            Placement p1 = new Placement(8, 6, 'D');
+            Placement p2 = new Placement(8, 8, 'E');
+
+            ply.add(p1);
+            ply.add(p2);
+
+            m = new Move(ply, "DUE", 1);
+
             m = new Move(ply, "DUE", 1);
 
             m.setScore(12);
@@ -269,6 +379,19 @@ public class MoveTest
     {
         try
         {
+            ArrayList<Placement> ply;
+            Move m;
+
+            ply = new ArrayList<>();
+
+            Placement p1 = new Placement(8, 6, 'D');
+            Placement p2 = new Placement(8, 8, 'E');
+
+            ply.add(p1);
+            ply.add(p2);
+
+            m = new Move(ply, "DUE", 1);
+
             m = new Move(ply, "DUE", 1);
 
             m.setScore(0);
@@ -290,6 +413,19 @@ public class MoveTest
     {
         try
         {
+            ArrayList<Placement> ply;
+            Move m;
+
+            ply = new ArrayList<>();
+
+            Placement p1 = new Placement(8, 6, 'D');
+            Placement p2 = new Placement(8, 8, 'E');
+
+            ply.add(p1);
+            ply.add(p2);
+
+            m = new Move(ply, "DUE", 1);
+
             m = new Move(ply, "DUE", 1);
 
             m.setScore(-1);
@@ -311,6 +447,19 @@ public class MoveTest
     {
         try
         {
+            ArrayList<Placement> ply;
+            Move m;
+
+            ply = new ArrayList<>();
+
+            Placement p1 = new Placement(8, 6, 'D');
+            Placement p2 = new Placement(8, 8, 'E');
+
+            ply.add(p1);
+            ply.add(p2);
+
+            m = new Move(ply, "DUE", 1);
+
             ply.clear();
 
             ply.add(new Placement(3, 3, 'A'));

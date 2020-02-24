@@ -79,3 +79,25 @@ see [Trello](https://trello.com/b/54o8lgQ2/core-progress)
 | Player Class  |Frame Class    |Pool Class
 | Player Test   |Frame Test     |Pool Test
 ****************
+
+## Sprint 2 - Short Documentation
+### Requirements:
+- [X] Board Class
+- [X] Board Test
+- [X] Square Class
+- [X] Square Test
+- [X] Move Class
+- [X] Move Test
+- [X] Placement Class
+- [X] Placement Test
+
+### Who did what
+| Reuben        | Evan          | Cal           |
+| ------------- | ------------- | ------------- |
+| Board Class (Some Methods)  |Move Class    |Board Class (Some Methods)
+| Board Test (Some Methods)   |Move Test     |Board Test (Some Methods)
+|               | Placement Class |
+| |Placement Test |
+| |Square Class  |
+| |Square Test  |
+****************
