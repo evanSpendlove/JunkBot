@@ -15,7 +15,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * @version 1.0
  * @since 07-02-2020
  */
-public class Pool
+public class Pool implements java.io.Serializable
 {
     // Fields
     private ArrayList<Tile> pool; // ArrayList of Tiles for storing current tiles in pool

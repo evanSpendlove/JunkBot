@@ -13,7 +13,7 @@ import java.util.ArrayList;
  * @version 1.0.0
  * @since 07-02-2020
  */
-public class Frame
+public class Frame implements java.io.Serializable
 {
     // Instance variables
     private ArrayList<Tile> tiles;

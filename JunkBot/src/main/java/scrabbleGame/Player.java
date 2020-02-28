@@ -11,7 +11,7 @@ package scrabbleGame;
  * @version 1.0.0
  * @since 07-02-2020
  */
-public class Player {
+public class Player implements java.io.Serializable {
 
     // Private fields
     /**

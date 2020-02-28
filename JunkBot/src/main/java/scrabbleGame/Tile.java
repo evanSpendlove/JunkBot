@@ -10,7 +10,7 @@ package scrabbleGame;
  * @version 1.0.0
  * @since 07-02-2020
  */
-public enum Tile
+public enum Tile implements java.io.Serializable
 {
     // Enum values for all tiles including blanks
     BLANK('#', 0), A('A', 1), B('B', 3), C('C', 3), D('D', 2), E('E',1), F('F', 4), G('G', 2), H('H',4),
