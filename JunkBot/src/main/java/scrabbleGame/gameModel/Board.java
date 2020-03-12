@@ -1,9 +1,8 @@
-package scrabbleGame;
+package scrabbleGame.gameModel;
 
 import java.io.*;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Scanner;
 
 /**
@@ -615,24 +614,5 @@ public class Board implements java.io.Serializable
         }
 
         return file;
-
-        /*
-        URL resource = this.getClass().getClassLoader().getResource(fileName);
-
-
-
-        System.out.println(resource.toString());
-
-        if(resource == null)
-        {
-            throw new IllegalArgumentException("file does not exist");
-        }
-
-        else
-        {
-            return new File(resource.getFile());
-        }
-
-         */
     }
 }

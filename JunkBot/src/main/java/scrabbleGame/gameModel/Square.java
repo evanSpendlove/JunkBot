@@ -1,4 +1,4 @@
-package scrabbleGame;
+package scrabbleGame.gameModel;
 
 /**
  * <h1>Square Class</h1>

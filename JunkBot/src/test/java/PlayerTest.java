@@ -1,7 +1,7 @@
 import org.junit.jupiter.api.Test;
-import scrabbleGame.Frame;
-import scrabbleGame.Player;
-import scrabbleGame.Pool;
+import scrabbleGame.gameModel.Frame;
+import scrabbleGame.gameModel.Player;
+import scrabbleGame.gameModel.Pool;
 
 import static org.junit.jupiter.api.Assertions.*;
 

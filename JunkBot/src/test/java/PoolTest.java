@@ -1,6 +1,6 @@
 import org.junit.jupiter.api.Test;
-import scrabbleGame.Pool;
-import scrabbleGame.Tile;
+import scrabbleGame.gameModel.Pool;
+import scrabbleGame.gameModel.Tile;
 
 import java.util.HashMap;
 import java.util.concurrent.ThreadLocalRandom;

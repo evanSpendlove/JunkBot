@@ -1,4 +1,4 @@
-package scrabbleGame;
+package scrabbleGame.gameModel;
 
 import java.util.ArrayList;
 import java.util.concurrent.ThreadLocalRandom;

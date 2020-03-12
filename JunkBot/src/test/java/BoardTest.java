@@ -1,6 +1,6 @@
 
 import org.junit.jupiter.api.Test;
-import scrabbleGame.*;
+import scrabbleGame.gameModel.*;
 
 import java.util.ArrayList;
 import java.util.List;

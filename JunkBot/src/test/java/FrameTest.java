@@ -1,8 +1,8 @@
 
 import org.junit.jupiter.api.Test;
-import scrabbleGame.Frame;
-import scrabbleGame.Pool;
-import scrabbleGame.Tile;
+import scrabbleGame.gameModel.Frame;
+import scrabbleGame.gameModel.Pool;
+import scrabbleGame.gameModel.Tile;
 import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.*;

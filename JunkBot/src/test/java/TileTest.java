@@ -1,5 +1,5 @@
 import org.junit.jupiter.api.Test;
-import scrabbleGame.Tile;
+import scrabbleGame.gameModel.Tile;
 
 import static org.junit.jupiter.api.Assertions.*;
 
