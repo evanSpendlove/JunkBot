@@ -2,6 +2,7 @@ package scrabbleGame.controllers;
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.scene.Node;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
@@ -74,10 +75,22 @@ public class BoardController
 
         addSquareToBoard(billy, 3, 5);
 
+        billy.setType(Square.squareType.DB_WORD);
+        billy.setTile(Tile.A);
+
         Frame testFrame = new Frame();
         testFrame.refillFrame(new Pool());
 
         updateFrame(testFrame);
+
+        Board testBoard = new Board();
+        testBoard.resetBoard();
+        updateBoard(testBoard);
+
+        addTiletoBoard(1, 6, 8);
+        addTiletoBoard(0, 7, 8);
+
+        removeTileFromBoard(7, 8);
     }
 
     @FXML
@@ -109,6 +122,10 @@ public class BoardController
         }
     }
 
+    // Switch Player
+
+    // Board Methods
+
     @FXML
     void addSquareToBoard(Square s, int x, int y)
     {
@@ -126,6 +143,34 @@ public class BoardController
     }
 
     @FXML
+    TilePane removeTileFromBoard(int x, int y)
+    {
+        return board[y][x].removeTile();
+    }
+
+    // Update whole board (Read from file, etc.)
+    @FXML
+    void updateBoard(Board b)
+    {
+        for(int i = 0; i < b.getBoard().length; i++)
+        {
+            for(int j = 0; j < b.getBoard()[0].length; j++)
+            {
+                addSquareToBoard(b.getBoard()[i][j], i, j);
+            }
+        }
+    }
+
+    // Add Move to Board
+    @FXML
+    void addTiletoBoard(int offset, int x, int y)
+    {
+        board[y][x].addTile(rack[offset]);
+    }
+
+    // Frame Methods
+
+    @FXML
     void updateFrame(Frame f)
     {
         // Need to update rack
@@ -137,6 +182,8 @@ public class BoardController
             rackPanes.add(tp, i, 0);
         }
     }
+
+    // Getters
 
     @FXML
     SquarePane getSquareByCoords(int x, int y)

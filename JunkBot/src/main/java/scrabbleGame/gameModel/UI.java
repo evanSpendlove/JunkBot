@@ -1,7 +1,5 @@
 package scrabbleGame.gameModel;
 
-import scrabbleGame.*;
-
 /**
  * <h1>UI Class</h1>
  * This represents UI of the game
