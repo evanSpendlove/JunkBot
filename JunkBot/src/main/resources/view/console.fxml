@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.Pane?>
+
+<Pane minHeight="-Infinity" minWidth="-Infinity" prefHeight="506.0" prefWidth="350.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="scrabbleGame.UI.components.ConsoleController">
+   <children>
+      <TextArea fx:id="consoleDisplay" editable="false" prefHeight="506.0" prefWidth="350.0" stylesheets="@../styling/OGScrabbleTheme.css" />
+      <TextField fx:id="commandInput" layoutX="1.0" layoutY="463.0" onAction="#submitCommand" prefHeight="42.0" prefWidth="348.0" stylesheets="@../styling/OGScrabbleTheme.css" />
+   </children>
+</Pane>
