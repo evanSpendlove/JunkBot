@@ -60,7 +60,8 @@ public class ScrabbleEngineController
     private int currentPlayerNum;
 
     @FXML
-    void initialize() throws TileNotFound {
+    void initialize() throws TileNotFound
+    {
         // Load components into this FXML file
 
         loadFXMLFiles();

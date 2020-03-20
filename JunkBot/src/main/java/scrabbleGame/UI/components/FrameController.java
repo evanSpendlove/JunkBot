@@ -53,6 +53,8 @@ public class FrameController
     @FXML
     public void updateFrame(Frame f)
     {
+        clearFrame();
+
         this.frameObj = f;
 
         // Need to update rack
@@ -63,6 +65,33 @@ public class FrameController
 
             framePanes.add(tp, i, 0);
         }
+    }
+
+    public TilePane playTile(int offset)
+    {
+        getFrameObj().playTile(getFrameObj().getTiles().get(offset));
+        TilePane tile = getRack()[offset];
+        getRack()[offset] = null;
+        getFramePanes().getChildren().remove(getRack()[offset]);
+
+        return tile;
+    }
+
+    @FXML
+    public void clearFrame()
+    {
+        this.frameObj = null;
+
+        this.getFramePanes().getChildren().clear();
+        rack = null;
+        rack = new TilePane[7];
+    }
+
+    @FXML
+    public void refillFrame(Pool p)
+    {
+        getFrameObj().refillFrame(p);
+        updateFrame(getFrameObj());
     }
 
     // Getters
