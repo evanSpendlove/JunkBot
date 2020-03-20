@@ -4,6 +4,7 @@ import javafx.fxml.FXML;
 import javafx.scene.layout.GridPane;
 import scrabbleGame.UI.utilityPanes.SquarePane;
 import scrabbleGame.UI.utilityPanes.TilePane;
+import scrabbleGame.exceptions.TileNotFound;
 import scrabbleGame.gameModel.*;
 
 public class BoardController
@@ -60,9 +61,17 @@ public class BoardController
     }
 
     @FXML
-    public TilePane removeTileFromBoard(int x, int y)
-    {
-        return getBoard()[y][x].removeTile();
+    public TilePane removeTileFromBoard(int x, int y) throws TileNotFound {
+        TilePane tp = getBoard()[y][x].removeTile();
+
+        if(tp != null)
+        {
+            return tp;
+        }
+        else
+        {
+            throw new TileNotFound("There is not tile located at these coordinates currently on the board.");
+        }
     }
 
     // Update whole board (Read from file, etc.)
@@ -96,7 +105,7 @@ public class BoardController
         // System.out.println("FC_Rack: " + Arrays.toString(fc.getRack()));
         // System.out.println("FC_RackPanes: " + Arrays.toString(fc.getFramePanes().getChildren().toArray()));
 
-        fc.getFrameObject().playTile(fc.getRack()[offset].getTile());
+        fc.getFrameObj().playTile(fc.getRack()[offset].getTile());
         fc.getRack()[offset] = null; // Remove from rack
 
         // System.out.println("FC_Rack: " + Arrays.toString(fc.getRack()));

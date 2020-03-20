@@ -7,7 +7,7 @@ import scrabbleGame.gameModel.*;
 
 public class FrameController
 {
-    private Frame frameObject;
+    private Frame frameObj;
 
     @FXML
     private GridPane framePanes;
@@ -17,12 +17,12 @@ public class FrameController
     private TilePane[] rack;
 
     // Getters and Setters
-    public Frame getFrameObject() {
-        return frameObject;
+    public Frame getFrameObj() {
+        return frameObj;
     }
 
-    public void setFrameObject(Frame frameObject) {
-        this.frameObject = frameObject;
+    public void setFrameObj(Frame frameObj) {
+        this.frameObj = frameObj;
     }
 
     public TilePane[] getRack() {
@@ -53,12 +53,12 @@ public class FrameController
     @FXML
     public void updateFrame(Frame f)
     {
-        this.frameObject = f;
+        this.frameObj = f;
 
         // Need to update rack
-        for(int i = 0; i < frameObject.getTiles().size(); i++)
+        for(int i = 0; i < frameObj.getTiles().size(); i++)
         {
-            TilePane tp = new TilePane(frameObject.getTiles().get(i));
+            TilePane tp = new TilePane(frameObj.getTiles().get(i));
             getRack()[i] = tp;
 
             framePanes.add(tp, i, 0);

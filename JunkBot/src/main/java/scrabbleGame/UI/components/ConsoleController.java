@@ -25,7 +25,17 @@ public class ConsoleController
     @FXML
     private TextField commandInput;
 
+    private String lastCommand;
+
     // Getters and Setters
+    public String getLastCommand() {
+        return lastCommand;
+    }
+
+    public void setLastCommand(String lastCommand) {
+        this.lastCommand = lastCommand;
+    }
+
     public ScrabbleEngineController getScrabbleEngineController() {
         return scrabbleEngineController;
     }
@@ -48,6 +58,8 @@ public class ConsoleController
         // Need more input validation
         if(!newCommand.isBlank() && !newCommand.isEmpty())
         {
+            setLastCommand(newCommand);
+
             newCommand += "\n";
 
             String oldCommands = consoleDisplay.getText();
@@ -85,7 +97,11 @@ public class ConsoleController
             System.out.println("X: " + x);
             System.out.println("Y: " + y);
 
-            getScrabbleEngineController().boardController.addTiletoBoard(this.scrabbleEngineController.frameController, offset, x, y);
+            getScrabbleEngineController().boardController.addTiletoBoard(this.scrabbleEngineController.currentFrameController, offset, x, y);
+        }
+        else if(command.charAt(0) == '5')
+        {
+            getScrabbleEngineController().switchPlayerDelay();
         }
     }
 
