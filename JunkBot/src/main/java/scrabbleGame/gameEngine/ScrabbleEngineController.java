@@ -84,7 +84,7 @@ public class ScrabbleEngineController
          */
 
         // Testing
-
+        /*
         Frame testFrame = new Frame();
         testFrame.refillFrame(new Pool());
 
@@ -102,8 +102,10 @@ public class ScrabbleEngineController
         boardController.addTiletoBoard(this.currentFrameController, 1, 6, 8);
         boardController.addTiletoBoard(this.currentFrameController, 0, 7, 8);
         boardController.removeTileFromBoard(7, 8);
-
+        */
+        boardController.updateBoard(board);
         currentFrameController.getFramePanes().setStyle("-fx-background-color: purple");
+        consoleController.addLineToConsole("Enter Usernames: (format name playernumber eg. Reuben 1)");
     }
 
     private void loadFXMLFiles()
@@ -144,10 +146,7 @@ public class ScrabbleEngineController
 
     private void initialiseBackEnd()
     {
-        String p1_username, p2_username;
 
-        p1_username = getUsernameFromUser(1);
-        p2_username = getUsernameFromUser(2);
 
         // TODO: Get these usernames from user input
 
@@ -158,8 +157,8 @@ public class ScrabbleEngineController
         Frame p1Frame = new Frame(pool);
         Frame p2Frame = new Frame(pool);
 
-        Player p1 = new Player(p1_username, 0, p1Frame);
-        Player p2 = new Player(p2_username, 0, p2Frame);
+        Player p1 = new Player("player1", 0, p1Frame);
+        Player p2 = new Player("player2", 0, p2Frame);
 
         Board board = new Board();
 
@@ -174,18 +173,19 @@ public class ScrabbleEngineController
 
     /**
      * Gets the chosen username for the Player via console display I/O.
-     * @param playerNum Pass the Player number (1 or 2) so we can greet them properly
      * @return String Return the username they have chosen
      */
-    private String getUsernameFromUser(int playerNum)
+    private String getUsernameFromUser()
     {
-        String username = "2";
-        String welcome = "Welcome, Player " + Integer.toString(playerNum) + "!";
+        consoleController.addLineToConsole("Please enter username for player 1:");
+        String username = consoleController.getLastCommand();
+        consoleController.addLineToConsole("Please enter username for player 2:");
+        String username2 = consoleController.getLastCommand();
 
         // TODO Get their username via a dialog of some sort interacting with ConsoleController
 
 
-        return username;
+        return username + " " + username2;
     }
 
     // Switch Player
