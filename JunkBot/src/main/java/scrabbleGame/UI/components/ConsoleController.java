@@ -25,7 +25,17 @@ public class ConsoleController
     @FXML
     private TextField commandInput;
 
+    private String lastCommand;
+
     // Getters and Setters
+    public String getLastCommand() {
+        return lastCommand;
+    }
+
+    public void setLastCommand(String lastCommand) {
+        this.lastCommand = lastCommand;
+    }
+
     public ScrabbleEngineController getScrabbleEngineController() {
         return scrabbleEngineController;
     }
@@ -48,13 +58,16 @@ public class ConsoleController
         // Need more input validation
         if(!newCommand.isBlank() && !newCommand.isEmpty())
         {
+            setLastCommand(newCommand);
+
             newCommand += "\n";
 
+
             String oldCommands = consoleDisplay.getText();
-
-            testCommands(newCommand);
-
             consoleDisplay.setText(oldCommands + newCommand);
+
+            parseInput(newCommand);
+
         }
 
         commandInput.clear();
@@ -68,6 +81,63 @@ public class ConsoleController
             s += "\n";
 
             consoleDisplay.setText(consoleDisplay.getText() + s);
+        }
+    }
+    private void parseInput(String input) throws IllegalArgumentException{
+
+        if(input.isEmpty() || input.isBlank()){
+            throw new IllegalArgumentException("Input cannot be empty");
+        }
+        String split[] = input.split("\\s");
+
+        String commands[] = {"Quit", "Help", "Exchange"};
+        int flag = -1;
+        for(int i = 0; i<commands.length; i++){
+            if(split[0].equalsIgnoreCase(commands[i]) == true){
+                flag = i;
+            }
+        }
+        if(flag == -1){
+            if(split[0].matches("[A-Z][0-9]{1,2}") == true && split.length == 3){
+                flag = 3;
+            } else if (split.length == 2 && split[0].matches("[A-Z]{0,1}[a-z]{3,9}") == true) {
+                flag = 4;
+            }
+        }
+
+        switch(flag){
+            case 0:
+                addLineToConsole("Game quiting");
+                //TODO add quit command
+                break;
+
+            case 1:
+                addLineToConsole("Help messages");
+                addLineToConsole("Commands: \nQuit - used to quit the game \nHelp- displays help " +
+                        "\nExchange - Exchange can be used to swap letters from your rack, format exchange Letter Letter\n Eg. Exchange A B \nMoves - " +
+                        "To play a move use format <GRID REF> <DIRECTION> <WORD> \nE.G. A1 Across Hello \nUsername entry: Player name can be updated at any point using command <name> <playernum>\n" +
+                        "E.g. Reuben 1");
+                break;
+
+            case 2:
+                addLineToConsole("Exchanging tiles");
+                break;
+
+            case 3:
+                addLineToConsole("Playing move x y z");
+                break;
+
+            case 4:
+                addLineToConsole("Username accepted");
+                if(Integer.parseInt(split[1]) == 1){
+                    getScrabbleEngineController().getPlayer1().setUsername(split[0]);
+                    System.out.println(getScrabbleEngineController().getPlayer1().dumpPlayerInfo());
+                }else{
+                    getScrabbleEngineController().getPlayer2().setUsername(split[0]);
+                    System.out.println(getScrabbleEngineController().getPlayer2().dumpPlayerInfo());
+                }
+                break;
+
         }
     }
 
@@ -85,7 +155,11 @@ public class ConsoleController
             System.out.println("X: " + x);
             System.out.println("Y: " + y);
 
-            getScrabbleEngineController().boardController.addTiletoBoard(this.scrabbleEngineController.frameController, offset, x, y);
+            getScrabbleEngineController().boardController.addTiletoBoard(this.scrabbleEngineController.currentFrameController, offset, x, y);
+        }
+        else if(command.charAt(0) == '5')
+        {
+            getScrabbleEngineController().switchPlayerDelay();
         }
     }
 

@@ -101,7 +101,7 @@ public class TilePane extends StackPane
 
         URL url = getClass().getResource(imageName);
 
-        //System.out.println(url);
+        // System.out.println(url);
 
         i.setImageView(new ImageView(new Image(url.toExternalForm())));
 

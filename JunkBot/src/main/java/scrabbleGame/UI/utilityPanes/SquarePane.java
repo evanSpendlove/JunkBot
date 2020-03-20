@@ -111,12 +111,19 @@ public class SquarePane extends StackPane
 
     public TilePane removeTile()
     {
-        sp.getChildren().remove(tPane);
-        this.getChildren().add(text);
+        if(tPane.getTile() == null)
+        {
+            return null;
+        }
+        else
+        {
+            sp.getChildren().remove(tPane);
+            this.getChildren().add(text);
 
-        setSquareColour(square);
+            setSquareColour(square);
 
-        return tPane;
+            return tPane;
+        }
     }
 
     // Update method

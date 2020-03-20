@@ -7,7 +7,7 @@ import scrabbleGame.gameModel.*;
 
 public class FrameController
 {
-    private Frame frameObject;
+    private Frame frameObj;
 
     @FXML
     private GridPane framePanes;
@@ -17,12 +17,12 @@ public class FrameController
     private TilePane[] rack;
 
     // Getters and Setters
-    public Frame getFrameObject() {
-        return frameObject;
+    public Frame getFrameObj() {
+        return frameObj;
     }
 
-    public void setFrameObject(Frame frameObject) {
-        this.frameObject = frameObject;
+    public void setFrameObj(Frame frameObj) {
+        this.frameObj = frameObj;
     }
 
     public TilePane[] getRack() {
@@ -53,16 +53,45 @@ public class FrameController
     @FXML
     public void updateFrame(Frame f)
     {
-        this.frameObject = f;
+        clearFrame();
+
+        this.frameObj = f;
 
         // Need to update rack
-        for(int i = 0; i < frameObject.getTiles().size(); i++)
+        for(int i = 0; i < frameObj.getTiles().size(); i++)
         {
-            TilePane tp = new TilePane(frameObject.getTiles().get(i));
+            TilePane tp = new TilePane(frameObj.getTiles().get(i));
             getRack()[i] = tp;
 
             framePanes.add(tp, i, 0);
         }
+    }
+
+    public TilePane playTile(int offset)
+    {
+        getFrameObj().playTile(getFrameObj().getTiles().get(offset));
+        TilePane tile = getRack()[offset];
+        getRack()[offset] = null;
+        getFramePanes().getChildren().remove(getRack()[offset]);
+
+        return tile;
+    }
+
+    @FXML
+    public void clearFrame()
+    {
+        this.frameObj = null;
+
+        this.getFramePanes().getChildren().clear();
+        rack = null;
+        rack = new TilePane[7];
+    }
+
+    @FXML
+    public void refillFrame(Pool p)
+    {
+        getFrameObj().refillFrame(p);
+        updateFrame(getFrameObj());
     }
 
     // Getters
