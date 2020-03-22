@@ -1,3 +1,5 @@
+package java;
+
 import org.junit.jupiter.api.Test;
 import scrabbleGame.gameModel.Pool;
 import scrabbleGame.gameModel.Tile;

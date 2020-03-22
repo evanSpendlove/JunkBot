@@ -1,3 +1,5 @@
+package java;
+
 import org.junit.jupiter.api.Test;
 import scrabbleGame.gameModel.Placement;
 import static org.junit.jupiter.api.Assertions.*;
