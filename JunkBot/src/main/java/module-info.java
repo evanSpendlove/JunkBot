@@ -8,6 +8,9 @@ module JunkBot
     opens scrabbleGame;
 
      */
-    opens scrabbleGame.controllers to javafx.fxml;
-    exports scrabbleGame.controllers to javafx.graphics;
+    opens scrabbleGame.gameEngine to javafx.fxml;
+    opens scrabbleGame.UI.components to javafx.fxml;
+    opens scrabbleGame.UI.utilityPanes to javafx.fxml;
+
+    exports scrabbleGame.gameEngine to javafx.graphics;
 }
