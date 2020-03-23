@@ -185,8 +185,9 @@ public class ConsoleController
                 System.out.println(newMove.toString());
                 if(getScrabbleEngineController().getTurnCounter() == 1){
                     if(getScrabbleEngineController().getBoard().placeFirstWord(newMove, getScrabbleEngineController().getPlayer1()) == 2){
-                        getScrabbleEngineController().currentFrameController.playWord(split[2]);
+                        //getScrabbleEngineController().boardController.addMoveToBoard(getScrabbleEngineController().currentFrameController, newMove);
                         getScrabbleEngineController().boardController.updateBoard(getScrabbleEngineController().getBoard());
+                        getScrabbleEngineController().currentFrameController.playWord(split[2]);
                         getScrabbleEngineController().getBoard().printBoard();
                         getScrabbleEngineController().switchPlayerDelay();
                     }else{

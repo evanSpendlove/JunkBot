@@ -82,6 +82,13 @@ public class FrameController
 
     public TilePane playTile(int offset)
     {
+        /*
+            3 Objects
+                - Frame Object
+                - Frame Panes
+                - Actual displayed frame
+         */
+
         getFrameObj().playTile(getFrameObj().getTiles().get(offset));
         TilePane tile = getRack()[offset];
         getRack()[offset] = null;
@@ -138,7 +145,8 @@ public class FrameController
     }
 
     @FXML
-    public void playWord(String word){
+    public void playWord(String word)
+    {
         Tile[] temp = new Tile[7];
         for(int i = 0; i < word.length(); i++){
             temp[i] = Tile.getInstance(word.charAt(i));
