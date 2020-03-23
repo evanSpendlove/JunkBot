@@ -206,11 +206,10 @@ public class Board implements java.io.Serializable
             if(play.getX() > 14 || play.getY() > 14 || play.getX() < 0 || play.getY() < 0) // Check the coordinates are on the board
             {
                 validPosition = false; //
-
-                if(board[play.getY()][play.getX()].isOccupied()) // Check the chosen tile is not currently occupied
-                {
-                    validPosition = false;
-                }
+            }
+            if(board[play.getY()][play.getX()].isOccupied()) // Check the chosen tile is not currently occupied
+            {
+                validPosition = false;
             }
         }
 

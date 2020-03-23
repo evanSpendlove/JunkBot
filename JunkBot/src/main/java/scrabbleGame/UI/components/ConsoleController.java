@@ -4,7 +4,14 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.application.Platform;
 import scrabbleGame.gameEngine.ScrabbleEngineController;
+import scrabbleGame.gameModel.Board;
+import scrabbleGame.gameModel.Move;
+import scrabbleGame.gameModel.Placement;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /*
     This is the class for all the methods to do with the console.
@@ -26,6 +33,12 @@ public class ConsoleController
     private TextField commandInput;
 
     private String lastCommand;
+
+    private boolean gameStarted = false;
+
+    private String helpMessage = "<--------- Help Message --------->\n" +
+            "Commands: {Start, Quit, Help, Exchange, (Move), Username}\n" +
+            "Start: Can only be used when no game has been started, loads up";
 
     // Getters and Setters
     public String getLastCommand() {
@@ -90,7 +103,7 @@ public class ConsoleController
         }
         String split[] = input.split("\\s");
 
-        String commands[] = {"Quit", "Help", "Exchange"};
+        String commands[] = {"Quit", "Help", "Exchange", "Start", "Username"};
         int flag = -1;
         for(int i = 0; i<commands.length; i++){
             if(split[0].equalsIgnoreCase(commands[i]) == true){
@@ -98,17 +111,15 @@ public class ConsoleController
             }
         }
         if(flag == -1){
-            if(split[0].matches("[A-Z][0-9]{1,2}") == true && split.length == 3){
-                flag = 3;
-            } else if (split.length == 2 && split[0].matches("[A-Z]{0,1}[a-z]{3,9}") == true) {
-                flag = 4;
+            if(split[0].matches("([A-Oa-o][1-9])|([A-Oa-o][1][0-5])") == true && split.length == 3){
+                flag = 5;
             }
         }
 
         switch(flag){
             case 0:
                 addLineToConsole("Game quiting");
-                //TODO add quit command
+                Platform.exit();
                 break;
 
             case 1:
@@ -120,21 +131,76 @@ public class ConsoleController
                 break;
 
             case 2:
-                addLineToConsole("Exchanging tiles");
+                char[] letters = new char[(split.length-1)];
+                for(int i = 1; i < split.length; i++){
+                    letters[i-1] = split[i].charAt(0);
+                }
+                try{
+                    getScrabbleEngineController().currentFrameController.exchangeTiles(letters);
+                    getScrabbleEngineController().currentFrameController.updateFrame(getScrabbleEngineController().getPlayer(getScrabbleEngineController().getCurrentPlayerNum()).getFrame());
+                    addLineToConsole("Tiles exchanged");
+                    getScrabbleEngineController().switchPlayerDelay();
+                }catch(Exception ex){
+                    addLineToConsole(ex.getMessage());
+                }
                 break;
 
             case 3:
-                addLineToConsole("Playing move x y z");
+                if(gameStarted){
+                    addLineToConsole("Game already in progress");
+                }else{
+                    gameStarted = true;
+                    addLineToConsole("Game starting! Player 1 is " + getScrabbleEngineController().getPlayer1().getUsername() + ", Player 2 is " +getScrabbleEngineController().getPlayer2().getUsername());
+                    getScrabbleEngineController().switchPlayerDelay();
+                }
                 break;
 
+
             case 4:
-                addLineToConsole("Username accepted");
-                if(Integer.parseInt(split[1]) == 1){
-                    getScrabbleEngineController().getPlayer1().setUsername(split[0]);
-                    System.out.println(getScrabbleEngineController().getPlayer1().dumpPlayerInfo());
+                if(split[1].matches("([A-Za-z]{1,9})")){
+                    addLineToConsole("Username accepted");
+                    if(Integer.parseInt(split[2]) == 1){
+                        getScrabbleEngineController().getPlayer1().setUsername(split[1]);
+                        System.out.println(getScrabbleEngineController().getPlayer1().dumpPlayerInfo());
+                    }else{
+                        getScrabbleEngineController().getPlayer2().setUsername(split[1]);
+                        System.out.println(getScrabbleEngineController().getPlayer2().dumpPlayerInfo());
+                    }
                 }else{
-                    getScrabbleEngineController().getPlayer2().setUsername(split[0]);
-                    System.out.println(getScrabbleEngineController().getPlayer2().dumpPlayerInfo());
+                    addLineToConsole("Username not accepted, enter a username only containing alpha characters max length 9 min length 1");
+                }
+
+                break;
+
+            case 5:
+                int[] gridRef = convertGridRef(split[0].toCharArray());
+                int direction = 0;
+                if(split[1].equalsIgnoreCase("Across") || split[1].equalsIgnoreCase("Horizontal")){
+                    direction = 0;
+                }else if(split[1].equalsIgnoreCase("Down") || split[1].equalsIgnoreCase("Vertical")){
+                    direction = 1;
+                }
+                List<Placement> play = createPlacement(split[2],gridRef,direction);
+                Move newMove = new Move(play, split[2], direction);
+                System.out.println(newMove.toString());
+                if(getScrabbleEngineController().getTurnCounter() == 1){
+                    if(getScrabbleEngineController().getBoard().placeFirstWord(newMove, getScrabbleEngineController().getPlayer1()) == 2){
+                        getScrabbleEngineController().currentFrameController.playWord(split[2]);
+                        getScrabbleEngineController().boardController.updateBoard(getScrabbleEngineController().getBoard());
+                        getScrabbleEngineController().getBoard().printBoard();
+                        getScrabbleEngineController().switchPlayerDelay();
+                    }else{
+                        addLineToConsole("Failed to play a word");
+                    }
+                }else{
+                    if(getScrabbleEngineController().getBoard().placeWord(newMove, getScrabbleEngineController().getPlayer(getScrabbleEngineController().getCurrentPlayerNum())) == 2){
+                        getScrabbleEngineController().currentFrameController.playWord(split[2]);
+                        getScrabbleEngineController().boardController.updateBoard(getScrabbleEngineController().getBoard());
+                        getScrabbleEngineController().getBoard().printBoard();
+                        getScrabbleEngineController().switchPlayerDelay();
+                    }else{
+                        addLineToConsole("Failed to play a word");
+                    }
                 }
                 break;
 
@@ -161,6 +227,50 @@ public class ConsoleController
         {
             getScrabbleEngineController().switchPlayerDelay();
         }
+    }
+
+    private int[] convertGridRef(char[] x){
+        int[] a = new int[x.length];
+        for(int i = 0; i < x.length; i++){
+            a[i] = x[i];
+        }
+        if(65 <= a[0] && a[0] <= 89){
+            a[0] -= 65;
+        }else if(97 <= a[0] && a[0] <= 111){
+            a[0] -= 97;
+        }
+        if(a.length == 2){
+            a[1] = a[1]-49;
+            return a;
+        }else if (a.length == 3){
+            a[1] = (a[1]-48)*10 + (a[2]-49);
+            return a;
+        }
+        return a;
+    }
+
+    List<Placement> createPlacement(String word, int[] gridRef, int direction){
+        List<Placement> placements = new ArrayList<Placement>();
+        char[] letters = word.toCharArray();
+        int letterPtr = 0;
+        if(direction == 0){
+            for(int i = gridRef[0]; i < (gridRef[0] + word.length());i++){
+                if(!getScrabbleEngineController().boardController.getBoardObject().getBoard()[i][gridRef[1]].isOccupied()){
+                    Placement temp = new Placement(i,gridRef[1],letters[letterPtr]);
+                    placements.add(temp);
+                }
+                letterPtr++;
+            }
+        }else if(direction == 1){
+            for(int i = gridRef[1]; i < (gridRef[1] + word.length()); i++){
+                if(!getScrabbleEngineController().boardController.getBoardObject().getBoard()[gridRef[0]][i].isOccupied()){
+                    Placement temp = new Placement(gridRef[0], i, letters[letterPtr]);
+                    placements.add(temp);
+                }
+                letterPtr++;
+            }
+        }
+        return placements;
     }
 
 }
