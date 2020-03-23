@@ -255,7 +255,7 @@ public class ConsoleController
         int letterPtr = 0;
         if(direction == 0){
             for(int i = gridRef[0]; i < (gridRef[0] + word.length());i++){
-                if(!getScrabbleEngineController().boardController.getBoardObject().getBoard()[i][gridRef[1]].isOccupied()){
+                if(!getScrabbleEngineController().boardController.getBoardObject().getBoard()[gridRef[1]][i].isOccupied()){
                     Placement temp = new Placement(i,gridRef[1],letters[letterPtr]);
                     placements.add(temp);
                 }
@@ -263,7 +263,8 @@ public class ConsoleController
             }
         }else if(direction == 1){
             for(int i = gridRef[1]; i < (gridRef[1] + word.length()); i++){
-                if(!getScrabbleEngineController().boardController.getBoardObject().getBoard()[gridRef[0]][i].isOccupied()){
+                if(!getScrabbleEngineController().boardController.getBoardObject().getBoard()[i][gridRef[0]].isOccupied()){
+                    System.out.println(letters[letterPtr]);
                     Placement temp = new Placement(gridRef[0], i, letters[letterPtr]);
                     placements.add(temp);
                 }
