@@ -103,11 +103,7 @@ public class Scrabble {
         return score * multi;
     }
 
-    public static void main(String[] args)
-    {
-        Player p1 = new Player("Bob", 0, new Frame());
-        Player p2 = new Player("Bill", 0, new Frame());
-
-        Scrabble s = new Scrabble(p1, p2);
+    public static void main(String[] args){
+        Scrabble x = new Scrabble(new Player("ree"), new Player("roo"));
     }
 }
