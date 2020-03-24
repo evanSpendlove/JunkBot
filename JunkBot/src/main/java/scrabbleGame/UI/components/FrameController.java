@@ -3,10 +3,15 @@ package scrabbleGame.UI.components;
 import javafx.fxml.FXML;
 import javafx.scene.layout.GridPane;
 import scrabbleGame.UI.utilityPanes.TilePane;
+import scrabbleGame.gameEngine.ScrabbleEngineController;
 import scrabbleGame.gameModel.*;
 
 public class FrameController
 {
+
+    @FXML
+    private ScrabbleEngineController scrabbleEngineController;
+
     private Frame frameObj;
 
     @FXML
@@ -41,6 +46,14 @@ public class FrameController
         this.framePanes = framePanes;
     }
 
+    public ScrabbleEngineController getScrabbleEngineController() {
+        return scrabbleEngineController;
+    }
+
+    public void setScrabbleEngineController(ScrabbleEngineController scrabbleEngineController) {
+        this.scrabbleEngineController = scrabbleEngineController;
+    }
+
     @FXML
     void initialize()
     {
@@ -69,6 +82,13 @@ public class FrameController
 
     public TilePane playTile(int offset)
     {
+        /*
+            3 Objects
+                - Frame Object
+                - Frame Panes
+                - Actual displayed frame
+         */
+
         getFrameObj().playTile(getFrameObj().getTiles().get(offset));
         TilePane tile = getRack()[offset];
         getRack()[offset] = null;
@@ -102,5 +122,38 @@ public class FrameController
         return getRack()[x];
     }
 
+    @FXML
+    public int exchangeTiles(char[] toChange) throws IllegalArgumentException{
+        if(toChange.length < 1){
+            return -1;
+        }
+        Tile[] temp = new Tile[7];
+        for(int i = 0; i < toChange.length; i++){
+            if(getFrameObj().containsTile(toChange[i]) != true){
+                throw new IllegalArgumentException("Cannot exchange tile that you don't have");
+            }
+        }
+        for(int i = 0; i < toChange.length; i++){
+            temp[i] = Tile.getInstance(toChange[i]);
+            getFrameObj().discardTile(temp[i]);
+        }
+        getFrameObj().refillFrame(getScrabbleEngineController().getPool());
+        for(int i = 0; i <toChange.length; i++){
+            getScrabbleEngineController().getPool().addTile(temp[i]);
+        }
+        return 1;
+    }
+
+    @FXML
+    public void playWord(Move m)
+    {
+        Tile[] temp = new Tile[7];
+
+        for(int i = 0; i < m.getPlays().size(); i++)
+        {
+            temp[i] = Tile.getInstance(m.getPlays().get(i).getLetter());
+            getFrameObj().discardTile(temp[i]);
+        }
+    }
 }
 

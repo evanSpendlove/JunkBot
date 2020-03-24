@@ -51,8 +51,15 @@ public class BoardController
         if(x >= 0 && x <= 14 && y >= 0 && y <= 14) // If the coordinates are on the board
         {
             SquarePane sPane = new SquarePane(s); // Create new SquarePane
+
+            if(s.isOccupied())
+            {
+                TilePane tp = new TilePane(s.getTile());
+                sPane.addTile(tp);
+            }
+
             getBoard()[y][x] = sPane; // Add to board
-            boardPanes.add(sPane, x, y);
+            boardPanes.add(sPane, y, x);
         }
         else
         {
@@ -78,6 +85,12 @@ public class BoardController
     @FXML
     public void updateBoard(Board b)
     {
+        this.board = null;
+        this.boardObject = null;
+        this.boardPanes.getChildren().clear();
+
+        this.board = new SquarePane[15][15];
+
         this.setBoardObject(b);
 
         for(int i = 0; i < b.getBoard().length; i++)
@@ -90,12 +103,32 @@ public class BoardController
     }
 
     // Add Move to Board
+    @FXML
+    public void addMoveToBoard(FrameController fc, Move m)
+    {
+        // Add each letter to the board
+
+        for(int i = 0; i < m.getPlays().size(); i++) // For each play
+        {
+            int x = m.getPlays().get(i).getX();
+            int y = m.getPlays().get(i).getY();
+            int offset = fc.getFrameObj().getTiles().indexOf(Tile.getInstance(m.getPlays().get(i).getLetter()));
+
+            System.out.println(fc.getFrameObj().getTiles().toString());
+
+            System.out.println("X: " + x + ", Y: " + y + ", Offset: " + offset + ", Character: " +  m.getPlays().get(i).getLetter());
+
+            addTiletoBoard(fc, offset, x, y);
+        }
+    }
 
     // Add Tile to Board
 
     @FXML
     public void addTiletoBoard(FrameController fc, int offset, int x, int y)
     {
+        System.out.println("Offset: " + offset + ", Tile: " + fc.getFrameObj().getTiles().get(offset));
+
         getBoardObject().getBoard()[y][x].setTile(fc.getRack()[offset].getTile()); // Add to board object
         getBoard()[y][x].addTile(fc.getRack()[offset]);
 
