@@ -34,6 +34,8 @@ public class Placement implements java.io.Serializable
         setLetter(c);
     }
 
+
+
     // Getters and Setters
 
     /**

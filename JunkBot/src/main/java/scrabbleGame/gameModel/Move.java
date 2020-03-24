@@ -34,7 +34,7 @@ public class Move implements java.io.Serializable
      * @param word Word to be played on the board (including hook letter)
      * @param direction Direction: 0 = horizontal, 1 = vertical
      */
-    public Move(List<Placement> plays, String word, int direction)
+        public Move(List<Placement> plays, String word, int direction)
     {
         setWord(word);
         setPlays(plays);
