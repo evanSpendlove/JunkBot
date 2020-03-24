@@ -145,11 +145,13 @@ public class FrameController
     }
 
     @FXML
-    public void playWord(String word)
+    public void playWord(Move m)
     {
         Tile[] temp = new Tile[7];
-        for(int i = 0; i < word.length(); i++){
-            temp[i] = Tile.getInstance(word.charAt(i));
+
+        for(int i = 0; i < m.getPlays().size(); i++)
+        {
+            temp[i] = Tile.getInstance(m.getPlays().get(i).getLetter());
             getFrameObj().discardTile(temp[i]);
         }
     }

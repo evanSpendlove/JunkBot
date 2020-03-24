@@ -386,7 +386,13 @@ public class BoardTest
         z.add(o);
         z.add(o1);
 
-        assertEquals(-1, test.placeWord(new Move(z, "DUE", 1), one));
+        test.printBoard();
+
+        int result = test.placeWord(new Move(z, "DUE", 1), one);
+
+        test.printBoard();
+
+        assertEquals(-1, result);
     }
 
     @Test
@@ -410,4 +416,6 @@ public class BoardTest
         y.add(t2);
         assertEquals(-1, test.placeFirstWord(new Move(y, "QUE", 0), one));
     }
+
 }
+

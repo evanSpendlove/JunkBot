@@ -15,6 +15,9 @@ import java.util.Arrays;
     This is the main Scrabble Engine Controller
 
     This is where all the game control should go.
+
+    TODO - Remove bloat, consolidate methods, integrate JavaFX into existing objects (wrapper methods).
+    TODO - Comment + remove prints
  */
 
 public class ScrabbleEngineController
@@ -66,8 +69,8 @@ public class ScrabbleEngineController
     {
         // Load components into this FXML file
 
-        loadFXMLFiles();
         initialiseBackEnd();
+        loadFXMLFiles();
 
         /*
 
@@ -87,6 +90,7 @@ public class ScrabbleEngineController
          */
 
         // Testing
+
         /*
         Frame testFrame = new Frame();
         testFrame.refillFrame(new Pool());
@@ -105,9 +109,10 @@ public class ScrabbleEngineController
         boardController.addTiletoBoard(this.currentFrameController, 1, 6, 8);
         boardController.addTiletoBoard(this.currentFrameController, 0, 7, 8);
         boardController.removeTileFromBoard(7, 8);
-        */
+
         boardController.updateBoard(board);
         currentFrameController.getFramePanes().setStyle("-fx-background-color: purple");
+         */
         consoleController.addLineToConsole("Welcome to our Scrabble game! \n To start the game use command Start," +
                 " before you do this, please enter usernames for each player by typing a name then either 1 or 2 (e.g. Reuben 1)\n" +
                 "To quit, use command Quit");
@@ -134,6 +139,8 @@ public class ScrabbleEngineController
             boardBorder.setCenter(boardLoader.load());
 
             boardController = boardLoader.getController();
+
+            boardController.updateBoard(this.board);
 
             // Load the Console FXML
 
@@ -166,6 +173,7 @@ public class ScrabbleEngineController
         Player p2 = new Player("player2", 0, p2Frame);
 
         Board board = new Board();
+        board.resetBoard();
 
         // Store in this instance
         setBoard(board);
@@ -205,7 +213,7 @@ public class ScrabbleEngineController
         switchPlayerPrompt.setVisible(true);
         incrementCurrentPlayerNum();
         String message = "PLEASE SWITCH TO PLAYER " + getCurrentPlayerNum() + "\n\n";
-        Timer.run(this,5, switchPlayerPrompt, message);
+        Timer.run(this,1, switchPlayerPrompt, message);
     }
 
 

@@ -187,7 +187,7 @@ public class ConsoleController
                     if(getScrabbleEngineController().getBoard().placeFirstWord(newMove, getScrabbleEngineController().getPlayer1()) == 2){
                         //getScrabbleEngineController().boardController.addMoveToBoard(getScrabbleEngineController().currentFrameController, newMove);
                         getScrabbleEngineController().boardController.updateBoard(getScrabbleEngineController().getBoard());
-                        getScrabbleEngineController().currentFrameController.playWord(split[2]);
+                        getScrabbleEngineController().currentFrameController.playWord(newMove);
                         getScrabbleEngineController().getBoard().printBoard();
                         getScrabbleEngineController().switchPlayerDelay();
                     }else{
@@ -195,7 +195,7 @@ public class ConsoleController
                     }
                 }else{
                     if(getScrabbleEngineController().getBoard().placeWord(newMove, getScrabbleEngineController().getPlayer(getScrabbleEngineController().getCurrentPlayerNum())) == 2){
-                        getScrabbleEngineController().currentFrameController.playWord(split[2]);
+                        getScrabbleEngineController().currentFrameController.playWord(newMove);
                         getScrabbleEngineController().boardController.updateBoard(getScrabbleEngineController().getBoard());
                         getScrabbleEngineController().getBoard().printBoard();
                         getScrabbleEngineController().switchPlayerDelay();
@@ -258,6 +258,7 @@ public class ConsoleController
             for(int i = gridRef[0]; i < (gridRef[0] + word.length());i++){
                 if(!getScrabbleEngineController().boardController.getBoardObject().getBoard()[gridRef[1]][i].isOccupied()){
                     Placement temp = new Placement(i,gridRef[1],letters[letterPtr]);
+                    System.out.println("Placement added: " + temp.toString());
                     placements.add(temp);
                 }
                 letterPtr++;
@@ -267,6 +268,7 @@ public class ConsoleController
                 if(!getScrabbleEngineController().boardController.getBoardObject().getBoard()[i][gridRef[0]].isOccupied()){
                     System.out.println(letters[letterPtr]);
                     Placement temp = new Placement(gridRef[0], i, letters[letterPtr]);
+                    System.out.println("Placement added: " + temp.toString());
                     placements.add(temp);
                 }
                 letterPtr++;
