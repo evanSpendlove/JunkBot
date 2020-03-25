@@ -21,49 +21,110 @@ import java.util.Arrays;
     TODO - Comment + remove prints
  */
 
+/**
+ * <h1>ScrabbleEngineController Class</h1>
+ * This class is the Main Scrabble Engine Controller.
+ * This class contains all of the game controls and runs the game. </br>
+ * We utilised a multi controller backend to properly integrate our existing java classes into JavaFX.</br>
+ * Team: JunkBot </br>
+ * Members: Reuben Mulligan (18733589), Evan Spendlove (18492656), Cal Nolan(18355103)
+ * @author Cal Nolan, Reuben Mulligan, Evan Spendlove
+ * @version 1.0.0
+ * @since 18-03-2020
+ */
+
 public class ScrabbleEngineController
 {
 
     // Controllers
 
+    /**
+     * Holds the Frame controller
+     */
     @FXML
     public FrameController currentFrameController;
 
+    /**
+     * Holds the console controller
+     */
     @FXML
     public ConsoleController consoleController;
 
+    /**
+     * Holds the Board controller
+     */
     @FXML
     public BoardController boardController;
 
     // Components
 
+    /**
+     * Holds the frame border pane
+     */
     @FXML
     private BorderPane frameBorder;
 
+    /**
+     * Holds the Board border pane
+     */
     @FXML
     private BorderPane boardBorder;
 
+    /**
+     * Holds the Console border pane
+     */
     @FXML
     private BorderPane consoleBorder;
 
+    /**
+     * Holds the switchPlayerPrompt Text area
+     */
     @FXML
     private TextArea switchPlayerPrompt;
 
     // Back-End Objects
 
+    /**
+     * Holds the current frame object
+     */
     private Frame currentFrame;
 
+    /**
+     * Holds the current board object
+     */
     private Board board;
 
+    /**
+     * Holds the current pool object
+     */
     private Pool pool;
 
+    /**
+     * Holds the player1 Player object
+     */
     private Player player1;
 
+    /**
+     * Holds the player2 Player object
+     */
     private Player player2;
 
+    /**
+     * Holds the current player number
+     */
     private int currentPlayerNum;
 
+    /**
+     * Holds the turn counter
+     */
     private int turnCounter = 0;
+
+    /**
+     * This method initializes our backend variables and loads the FXML files.
+     * It then prints a welcome message to the JavaFX console
+     * @throws TileNotFound
+     * @author Evan Spendlove
+     */
 
     @FXML
     void initialize() throws TileNotFound
@@ -88,36 +149,16 @@ public class ScrabbleEngineController
             System.out.println("Issue finding stylesheet");
             //throw new NullPointerException("File not found or added as a stylesheet.");
         }
-         */
-
-        // Testing
-
-        /*
-        Frame testFrame = new Frame();
-        testFrame.refillFrame(new Pool());
-
-        System.out.println("Test frame: " + testFrame);
-
-        currentFrameController.updateFrame(testFrame);
-
-        System.out.println("FC_Rack: " + Arrays.toString(currentFrameController.getRack()));
-        System.out.println("FC_RackPanes: " + Arrays.toString(currentFrameController.getFramePanes().getChildren().toArray()));
-
-        Board testBoard = new Board();
-        // testBoard.resetBoard();
-        boardController.updateBoard(testBoard);
-
-        boardController.addTiletoBoard(this.currentFrameController, 1, 6, 8);
-        boardController.addTiletoBoard(this.currentFrameController, 0, 7, 8);
-        boardController.removeTileFromBoard(7, 8);
-
-        boardController.updateBoard(board);
-        currentFrameController.getFramePanes().setStyle("-fx-background-color: purple");
-         */
-        consoleController.addLineToConsole("Welcome to our Scrabble game! \n To start the game use command Start," +
-                " before you do this, please enter usernames for each player by typing a name then either 1 or 2 (e.g. Reuben 1)\n" +
+        */
+        consoleController.addLineToConsole("Welcome to our Scrabble game! \n To start the game use command Start." +
+                " Before you do this, please enter Usernames for each player using Format: Username <name> <playerNumber>\n" +
                 "To quit, use command Quit");
     }
+
+    /**
+     * This loads the FXML files in for all the controllers.
+     * @author Evan Spendlove
+     */
 
     private void loadFXMLFiles()
     {
@@ -141,7 +182,7 @@ public class ScrabbleEngineController
 
             boardController = boardLoader.getController();
 
-            boardController.updateBoard(getBoard());
+            boardController.updateBoard(this.board);
 
             // Load the Console FXML
 
@@ -188,7 +229,7 @@ public class ScrabbleEngineController
     {
 
 
-                // Create Game objects
+        // Create Game objects
 
         Pool pool = new Pool();
 
@@ -207,10 +248,41 @@ public class ScrabbleEngineController
         setPlayer1(p1);
         setPlayer2(p2);
         setPool(pool);
-        currentPlayerNum = 2;
+
+        currentPlayerNum = 0;
     }
 
-    // Switch Player
+
+    /**
+     * This method implements a delay between player switches as to avoid cheating and stop players from seeing their opponents racks
+     * @uses Timer Uses timer to add a delay between turns. Adds a countdown on screen and switches the players after a set time
+     * @author Evan Spendlove
+     */
+    @FXML
+    public void switchPlayerDelay()
+    {
+        //Hide the previous players frame
+        currentFrameController.getFramePanes().setVisible(false);
+
+        //Make the switch player prompt visible
+        switchPlayerPrompt.setVisible(true);
+
+        //Switch the current player number
+        incrementCurrentPlayerNum();
+
+        //Initialise the prompt message
+        String message = "PLEASE SWITCH TO PLAYER " + getCurrentPlayerNum() + "\n\n";
+
+        //Use Timer.run to activate the count down and switch the player
+        Timer.run(this,5, switchPlayerPrompt, message);
+    }
+
+    /**
+     * This method switches the players, it is a nested method of switchPlayerDelay
+     * It switches the instance variables around, refills the player frame if its not the start of the game.
+     * It then updates the frame on the board and prints a message
+     * @author Evan Spendlove
+     */
     public void switchPlayer()
     {
         switch(getCurrentPlayerNum())
@@ -224,49 +296,20 @@ public class ScrabbleEngineController
                 setCurrentFrame(getPlayer2().getFrame()); // Update current Frame
                 break;
         }
-        if(turnCounter != 0){
+
+        //If the turn counter is less than 2 then refill the users frame
+        //We delay the refilling of frames to accommodate for challenges
+        if(turnCounter < 2){
             currentFrameController.refillFrame(getPool());
         }
+        //Update the frame controller to contain the new players frame
         currentFrameController.updateFrame(getCurrentFrame()); // Update frame controller
         consoleController.addLineToConsole("------- PLAYER " + getCurrentPlayerNum() + "'S TURN -------"); // Notify player
+
+        //Increase the turn counter
         incrementTurnCounter();
     }
 
-    @FXML
-    public void switchPlayerDelay()
-    {
-        currentFrameController.getFramePanes().setVisible(false);
-        switchPlayerPrompt.setVisible(true);
-        incrementCurrentPlayerNum();
-        String message = "PLEASE SWITCH TO PLAYER " + getCurrentPlayerNum() + "\n\n";
-        Timer.run(this,1, switchPlayerPrompt, message);
-    }
-
-
-    // Public Getters and Private Setters
-
-    public int getCurrentPlayerNum() {
-        return currentPlayerNum;
-    }
-
-    public void incrementCurrentPlayerNum()
-    {
-        if(currentPlayerNum == 1)
-        {
-            currentPlayerNum++;
-        }
-        else
-        {
-            currentPlayerNum = 1;
-        }
-        System.out.println(currentPlayerNum);
-    }
-
-    /**
-     *  method to find any words that have been altered by this play, in order to score them
-     *  @param: A move that has been made
-     *  @return: the score of the words
-     */
     private int findAdditionalWords(Move m){
         int count;
         int xCoord = m.getPlays().get(0).getX();//Set X,Y co-ords to first tile played in move
@@ -346,7 +389,7 @@ public class ScrabbleEngineController
         Placement tile = m.getPlays().get(0);
         int x = tile.getX();
         int y = tile.getY();
-        Square sq = getBoard().getBoard()[y][x];
+        Square sq = this.board.getBoard()[y][x];
         checkSurroundingSquares(m);
         while (sq.isOccupied()) {
             letter = sq.getTile().value();//for each letter in the word, get it's value, and any special tiles
@@ -441,30 +484,58 @@ public class ScrabbleEngineController
         return total;
     }
 
+
+    // Public Getters and Private Setters
+
+    /**
+     * @return currentPlayerNum
+     */
+    public int getCurrentPlayerNum() {
+        return currentPlayerNum;
+    }
+    /**
+     * @return currentFrame
+     */
     public Frame getCurrentFrame() {
         return currentFrame;
     }
-
+    /**
+     * @param currentFrame
+     */
     private void setCurrentFrame(Frame currentFrame) {
         this.currentFrame = currentFrame;
     }
-
+    /**
+     * @return board
+     */
     public Board getBoard() {
         return board;
     }
-
+    /**
+     * @param board
+     */
     private void setBoard(Board board) {
         this.board = board;
     }
 
+    /**
+     * @return pool
+     */
     public Pool getPool() {
         return pool;
     }
 
+    /**
+     * @param pool
+     */
     private void setPool(Pool pool) {
         this.pool = pool;
     }
 
+    /**
+     * @param playerNum
+     * @return player
+     */
     public Player getPlayer(int playerNum){
         if(playerNum == 1){
             return player1;
@@ -473,26 +544,61 @@ public class ScrabbleEngineController
         }
     }
 
+    /**
+     * @return player1
+     */
     public Player getPlayer1() {
         return player1;
     }
 
+    /**
+     * @param player1
+     */
     private void setPlayer1(Player player1) {
         this.player1 = player1;
     }
 
+    /**
+     * @return player2
+     */
     public Player getPlayer2() {
         return player2;
     }
 
+    /**
+     * @param player2
+     */
     private void setPlayer2(Player player2) {
         this.player2 = player2;
     }
 
+    /**
+     * Switches the player number
+     * @author Evan Spendlove
+     */
+    public void incrementCurrentPlayerNum()
+    {
+        if(currentPlayerNum == 1)
+        {
+            currentPlayerNum++;
+        }
+        else
+        {
+            currentPlayerNum = 1;
+        }
+        System.out.println(currentPlayerNum);
+    }
+
+    /**
+     * Increases the turn counter
+     */
     public void incrementTurnCounter(){
         turnCounter++;
     }
 
+    /**
+     * @return turnCounter
+     */
     public int getTurnCounter() {
         return turnCounter;
     }

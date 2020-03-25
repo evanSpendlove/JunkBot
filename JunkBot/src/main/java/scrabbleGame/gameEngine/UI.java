@@ -6,7 +6,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
-public class ScrabbleFX extends Application
+public class UI extends Application
 {
     private static final int minHeight = 720; // 720
     private static final int minWidth = 1280; // 1280
