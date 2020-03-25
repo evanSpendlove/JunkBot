@@ -310,6 +310,11 @@ public class ScrabbleEngineController
         incrementTurnCounter();
     }
 
+    /**
+     * method to find additonal words that have been altered by a move, in order to score them
+     * @param m
+     * @return total score of all such words
+     */
     private int findAdditionalWords(Move m){
         int count;
         int xCoord = m.getPlays().get(0).getX();//Set X,Y co-ords to first tile played in move
