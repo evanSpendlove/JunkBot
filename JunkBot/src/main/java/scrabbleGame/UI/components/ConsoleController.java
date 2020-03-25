@@ -181,7 +181,7 @@ public class ConsoleController
                     direction = 1;
                 }
                 List<Placement> play = createPlacement(split[2],gridRef,direction);
-                Move newMove = new Move(play, split[2], direction);
+                Move newMove = new Move(play, split[2].toUpperCase(), direction);
                 System.out.println(newMove.toString());
                 if(getScrabbleEngineController().getTurnCounter() == 1){
                     if(getScrabbleEngineController().getBoard().placeFirstWord(newMove, getScrabbleEngineController().getPlayer1()) == 2){
