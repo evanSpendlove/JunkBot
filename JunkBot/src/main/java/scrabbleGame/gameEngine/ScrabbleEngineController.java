@@ -26,7 +26,8 @@ import java.util.Arrays;
  * This class is the Main Scrabble Engine Controller.
  * This class contains all of the game controls and runs the game. </br>
  * We utilised a multi controller backend to properly integrate our existing java classes into JavaFX.</br>
- * Team: JunkBotMembers: Reuben Mulligan (18733589), Evan Spendlove (18492656), Cal Nolan(18355103)
+ * Team: JunkBot </br>
+ * Members: Reuben Mulligan (18733589), Evan Spendlove (18492656), Cal Nolan(18355103)
  * @author Cal Nolan, Reuben Mulligan, Evan Spendlove
  * @version 1.0.0
  * @since 18-03-2020
