@@ -21,49 +21,110 @@ import java.util.Arrays;
     TODO - Comment + remove prints
  */
 
+/**
+ * <h1>ScrabbleEngineController Class</h1>
+ * This class is the Main Scrabble Engine Controller.
+ * This class contains all of the game controls and runs the game. </br>
+ * We utilised a multi controller backend to properly integrate our existing java classes into JavaFX.</br>
+ * Team: JunkBot </br>
+ * Members: Reuben Mulligan (18733589), Evan Spendlove (18492656), Cal Nolan(18355103)
+ * @author Cal Nolan, Reuben Mulligan, Evan Spendlove
+ * @version 1.0.0
+ * @since 18-03-2020
+ */
+
 public class ScrabbleEngineController
 {
 
     // Controllers
 
+    /**
+     * Holds the Frame controller
+     */
     @FXML
     public FrameController currentFrameController;
 
+    /**
+     * Holds the console controller
+     */
     @FXML
     public ConsoleController consoleController;
 
+    /**
+     * Holds the Board controller
+     */
     @FXML
     public BoardController boardController;
 
     // Components
 
+    /**
+     * Holds the frame border pane
+     */
     @FXML
     private BorderPane frameBorder;
 
+    /**
+     * Holds the Board border pane
+     */
     @FXML
     private BorderPane boardBorder;
 
+    /**
+     * Holds the Console border pane
+     */
     @FXML
     private BorderPane consoleBorder;
 
+    /**
+     * Holds the switchPlayerPrompt Text area
+     */
     @FXML
     private TextArea switchPlayerPrompt;
 
     // Back-End Objects
 
+    /**
+     * Holds the current frame object
+     */
     private Frame currentFrame;
 
+    /**
+     * Holds the current board object
+     */
     private Board board;
 
+    /**
+     * Holds the current pool object
+     */
     private Pool pool;
 
+    /**
+     * Holds the player1 Player object
+     */
     private Player player1;
 
+    /**
+     * Holds the player2 Player object
+     */
     private Player player2;
 
+    /**
+     * Holds the current player number
+     */
     private int currentPlayerNum;
 
+    /**
+     * Holds the turn counter
+     */
     private int turnCounter = 0;
+
+    /**
+     * This method initializes our backend variables and loads the FXML files.
+     * It then prints a welcome message to the JavaFX console
+     * @throws TileNotFound
+     * @author Evan Spendlove
+     */
 
     @FXML
     void initialize() throws TileNotFound
@@ -88,36 +149,16 @@ public class ScrabbleEngineController
             System.out.println("Issue finding stylesheet");
             //throw new NullPointerException("File not found or added as a stylesheet.");
         }
-         */
-
-        // Testing
-
-        /*
-        Frame testFrame = new Frame();
-        testFrame.refillFrame(new Pool());
-
-        System.out.println("Test frame: " + testFrame);
-
-        currentFrameController.updateFrame(testFrame);
-
-        System.out.println("FC_Rack: " + Arrays.toString(currentFrameController.getRack()));
-        System.out.println("FC_RackPanes: " + Arrays.toString(currentFrameController.getFramePanes().getChildren().toArray()));
-
-        Board testBoard = new Board();
-        // testBoard.resetBoard();
-        boardController.updateBoard(testBoard);
-
-        boardController.addTiletoBoard(this.currentFrameController, 1, 6, 8);
-        boardController.addTiletoBoard(this.currentFrameController, 0, 7, 8);
-        boardController.removeTileFromBoard(7, 8);
-
-        boardController.updateBoard(board);
-        currentFrameController.getFramePanes().setStyle("-fx-background-color: purple");
-         */
-        consoleController.addLineToConsole("Welcome to our Scrabble game! \n To start the game use command Start," +
-                " before you do this, please enter usernames for each player by typing a name then either 1 or 2 (e.g. Reuben 1)\n" +
+        */
+        consoleController.addLineToConsole("Welcome to our Scrabble game! \n To start the game use command Start." +
+                " Before you do this, please enter Usernames for each player using Format: Username <name> <playerNumber>\n" +
                 "To quit, use command Quit");
     }
+
+    /**
+     * This loads the FXML files in for all the controllers.
+     * @author Evan Spendlove
+     */
 
     private void loadFXMLFiles()
     {
@@ -160,11 +201,35 @@ public class ScrabbleEngineController
         }
     }
 
+    /**
+     * method to decide which player goes first
+     * @return 1 or 2, depending on who goes first
+     */
+    private int order() {
+        Tile tile1 = getPool().draw();//draws 2 random tiles from the pool
+        Tile tile2 = getPool().draw();
+
+        while(tile1.character() == tile2.character()){
+            //if the two tiles have the same letter, draw 2 new tiles
+            tile1 = getPool().draw();
+            tile2 = getPool().draw();
+        }
+
+        getPool().reset();//reset the pool after all tiles have been drawn
+
+        if (tile1.character() < tile2.character()) {
+            //if tile 1 is blank space, or closer to 'A' than tile 2, return 1 - player 1 goes first
+            return 1;
+        }
+        //if tile 2 is blank space, or closer to 'A' than tile 1, return 2 - player 2 goes first
+        return 2;
+    }
+
     private void initialiseBackEnd()
     {
 
 
-                // Create Game objects
+        // Create Game objects
 
         Pool pool = new Pool();
 
@@ -183,10 +248,41 @@ public class ScrabbleEngineController
         setPlayer1(p1);
         setPlayer2(p2);
         setPool(pool);
-        currentPlayerNum = 2;
+
+        currentPlayerNum = 0;
     }
 
-    // Switch Player
+
+    /**
+     * This method implements a delay between player switches as to avoid cheating and stop players from seeing their opponents racks
+     * @uses Timer Uses timer to add a delay between turns. Adds a countdown on screen and switches the players after a set time
+     * @author Evan Spendlove
+     */
+    @FXML
+    public void switchPlayerDelay()
+    {
+        //Hide the previous players frame
+        currentFrameController.getFramePanes().setVisible(false);
+
+        //Make the switch player prompt visible
+        switchPlayerPrompt.setVisible(true);
+
+        //Switch the current player number
+        incrementCurrentPlayerNum();
+
+        //Initialise the prompt message
+        String message = "PLEASE SWITCH TO PLAYER " + getCurrentPlayerNum() + "\n\n";
+
+        //Use Timer.run to activate the count down and switch the player
+        Timer.run(this,5, switchPlayerPrompt, message);
+    }
+
+    /**
+     * This method switches the players, it is a nested method of switchPlayerDelay
+     * It switches the instance variables around, refills the player frame if its not the start of the game.
+     * It then updates the frame on the board and prints a message
+     * @author Evan Spendlove
+     */
     public void switchPlayer()
     {
         switch(getCurrentPlayerNum())
@@ -200,90 +296,72 @@ public class ScrabbleEngineController
                 setCurrentFrame(getPlayer2().getFrame()); // Update current Frame
                 break;
         }
-        if(turnCounter != 0){
+
+        //If the turn counter is less than 2 then refill the users frame
+        //We delay the refilling of frames to accommodate for challenges
+        if(turnCounter < 2){
             currentFrameController.refillFrame(getPool());
         }
+        //Update the frame controller to contain the new players frame
         currentFrameController.updateFrame(getCurrentFrame()); // Update frame controller
         consoleController.addLineToConsole("------- PLAYER " + getCurrentPlayerNum() + "'S TURN -------"); // Notify player
+
+        //Increase the turn counter
         incrementTurnCounter();
     }
 
-    @FXML
-    public void switchPlayerDelay()
-    {
-        currentFrameController.getFramePanes().setVisible(false);
-        switchPlayerPrompt.setVisible(true);
-        incrementCurrentPlayerNum();
-        String message = "PLEASE SWITCH TO PLAYER " + getCurrentPlayerNum() + "\n\n";
-        Timer.run(this,1, switchPlayerPrompt, message);
-    }
-
-
-    // Public Getters and Private Setters
-
-    public int getCurrentPlayerNum() {
-        return currentPlayerNum;
-    }
-
-    public void incrementCurrentPlayerNum()
-    {
-        if(currentPlayerNum == 1)
-        {
-            currentPlayerNum++;
-        }
-        else
-        {
-            currentPlayerNum = 1;
-        }
-        System.out.println(currentPlayerNum);
-    }
-
     /**
-     *  method to find any words that have been altered by this play, in order to score them
-     *  @param: A move that has been made
-     *  @return: the score of the words
+     * method to find additonal words that have been altered by a move, in order to score them
+     * @param m
+     * @return total score of all such words
      */
     private int findAdditionalWords(Move m){
         int count;
-        Placement plays = m.getPlays().get(0);
-        int xCoord = plays.getX();//Set X,Y co-ords to first tile played in move
-        int yCoord = plays.getY();
-        Square sq = this.board.getBoard()[yCoord][xCoord];
+        int xCoord = m.getPlays().get(0).getX();//Set X,Y co-ords to first tile played in move
+        int yCoord = m.getPlays().get(0).getY();
         ArrayList<Placement> AdditionalWord = new ArrayList<>();
         int scores=0;
         String word="";
+        Square sq = getBoard().getBoard()[yCoord][xCoord];//look at first tile in move
 
-        if(m.getDirection()==1){
-            for(count=0;count<m.getPlays().size();count++){
-                if(this.board.getBoard()[plays.getY()+1][plays.getX()].isOccupied() || this.board.getBoard()[plays.getY()-1][plays.getX()].isOccupied()){
-                    while(sq.isOccupied()){
-                        yCoord++;
-                        sq = this.board.getBoard()[yCoord][xCoord];
+        if(m.getDirection()==0){//check direction of word
+            for(count=0;count<m.getPlays().size();count++){//check every tile in move
+                if(getBoard().getBoard()[m.getPlays().get(count).getY()+1][m.getPlays().get(count).getX()].isOccupied() || getBoard().getBoard()[m.getPlays().get(count).getY()-1][m.getPlays().get(count).getX()].isOccupied()){
+                    //if there is a tile placed directly above or below the tile
+                    int yCoord2=yCoord;
+                    while(sq.isOccupied()){//go through to the end of the perpendicular word
+                        yCoord2--;
+                        sq = getBoard().getBoard()[yCoord2][xCoord];
                     }
-                    while(sq.isOccupied()){
+                    yCoord2--;
+                    while(sq.isOccupied()){//when at the end of the word, go through to the other end, adding the tiles to a new move object
                         AdditionalWord.add(new Placement(xCoord, yCoord, sq.getTile().character()));
-                        word += Character.toString(sq.getTile().character());
-                        yCoord--;
+                        word += Character.toString(sq.getTile().character());//add letter by letter to new word string
+                        yCoord2++;
+                        sq = getBoard().getBoard()[yCoord2][xCoord];//increment through word
                     }
-                    scores+=scoring(new Move(AdditionalWord, word, 0));
+                    scores+=calculateScoring(new Move(AdditionalWord, word, 0));//after finding an additional, perpendicular word, have it scored
                     word="";
                     AdditionalWord.clear();
                 }
             }
         }
-        else{
+        else{//second half of method is the same as first, for a vertical word
             for(count=0;count<m.getPlays().size();count++){
-                if(this.board.getBoard()[plays.getY()][plays.getX()+1].isOccupied() || this.board.getBoard()[plays.getY()][plays.getX()+1].isOccupied()){
+                if(getBoard().getBoard()[m.getPlays().get(count).getY()][m.getPlays().get(count).getX()+1].isOccupied() || getBoard().getBoard()[m.getPlays().get(count).getY()][m.getPlays().get(count).getX()+1].isOccupied()){
+                    int xCoord2=xCoord;
                     while(sq.isOccupied()){
-                        AdditionalWord.add(new Placement(xCoord, yCoord, sq.getTile().character()));
-                        xCoord++;
+                        xCoord2--;
+                        sq = getBoard().getBoard()[yCoord][xCoord2];
                     }
-                    xCoord = plays.getX();
-                    while(sq.isOccupied()){
-                        AdditionalWord.add(new Placement(xCoord, yCoord, sq.getTile().character()));
-                        xCoord--;
+                    xCoord2++;
+                    while(xCoord2<xCoord){
+                        AdditionalWord.add(new Placement(xCoord2, yCoord, sq.getTile().character()));
+                        word += Character.toString(sq.getTile().character());
+                        xCoord2++;
+                        sq = getBoard().getBoard()[yCoord][xCoord2];
                     }
-                    scores+=scoring(new Move(AdditionalWord, word, 0));
+                    scores+=calculateScoring(new Move(AdditionalWord, word, 0));
                     word="";
                     AdditionalWord.clear();
                 }
@@ -293,11 +371,23 @@ public class ScrabbleEngineController
     }
 
     /**
+     * Method to call other scoring methods
+     * @param m
+     * @return total score of played move
+     */
+    public int scoring(Move m){
+        if(m.getPlays().size()==7){
+            return calculateScoring(m)+findAdditionalWords(m)+50;
+        }
+        return calculateScoring(m)+findAdditionalWords(m);
+    }
+
+    /**
      * Method to find the score of a played word
      * @param m, the move to be scored
      * @return the total score of the move
      */
-    public int scoring(Move m) {
+    private int calculateScoring(Move m) {
         int letter;//represents the score of each individual tile
         int score = 0;//represents the score of an entire word
         int multi = 1;//represents word multipliers
@@ -305,7 +395,7 @@ public class ScrabbleEngineController
         int x = tile.getX();
         int y = tile.getY();
         Square sq = this.board.getBoard()[y][x];
-        checkPreviousSquares(m);
+        checkSurroundingSquares(m);
         while (sq.isOccupied()) {
             letter = sq.getTile().value();//for each letter in the word, get it's value, and any special tiles
             switch (sq.getType()) {//Apply letter multipliers to 'letter', and word multipliers to 'multi'
@@ -333,82 +423,124 @@ public class ScrabbleEngineController
             else{
                 y++;
             }
-            sq = this.board.getBoard()[y][x];//check the next square on the board
+            sq = getBoard().getBoard()[y][x];//check the next square on the board
         }
         score *= multi;
         return score;//multiply the total score by the any word multipliers
     }
 
     /**
-     * Method which checks if a placed word is being appended to the end of another word
+     * Method which checks if a placed word is being appended to the end or start of another word
      * @param m
      */
-    private void checkPreviousSquares(Move m){
-        int x=m.getPlays().get(0).getX();
-        int y=m.getPlays().get(0).getY();
+    private void checkSurroundingSquares(Move m){
+        int xCoord=m.getPlays().get(0).getX();
+        int yCoord=m.getPlays().get(0).getY();
 
-        if(m.getDirection()==0){
-            x--;
-            Square sq = this.board.getBoard()[y][x];
-            if(sq.isOccupied()) {
-                while (sq.isOccupied()) {
-                    m.getPlays().add(new Placement(x, y, sq.getTile().character()));
-                    x--;
-                    sq = this.board.getBoard()[y][x];
+        if(m.getDirection()==0){//if word is horizontal
+            xCoord--;//check square directly before first tile in move
+            Square sq = getBoard().getBoard()[yCoord][xCoord];
+            if(sq.isOccupied()) {//if it's occupied
+                while(sq.isOccupied()){//go back through the tiles until a blank is found, adding each tile to move
+                    m.getPlays().add(new Placement(xCoord, yCoord, sq.getTile().character()));
+                    xCoord--;
+                    sq = getBoard().getBoard()[yCoord][xCoord];
                 }
             }
+            xCoord=m.getPlays().get(m.getPlays().size()-1).getX()+1;//set xCoord to first tile after move
+            sq = getBoard().getBoard()[yCoord][xCoord];
+            while(sq.isOccupied()){//if occupied, go though tiles until an empty square is found - add all tiles to move
+                m.getPlays().add(new Placement(xCoord, yCoord, sq.getTile().character()));
+                xCoord++;
+                sq = getBoard().getBoard()[yCoord][xCoord];
+            }
         }
-        else{
-            y--;
-            Square sq = this.board.getBoard()[y][x];
+        else{//Same as previously, but for a vertical word
+            yCoord--;
+            Square sq = getBoard().getBoard()[yCoord][xCoord];
             if(sq.isOccupied()) {
                 while (sq.isOccupied()) {
-                    m.getPlays().add(new Placement(x, y, sq.getTile().character()));
-                    y--;
-                    sq = this.board.getBoard()[y][x];
+                    m.getPlays().add(new Placement(xCoord, yCoord, sq.getTile().character()));
+                    yCoord--;
+                    sq = getBoard().getBoard()[yCoord][xCoord];
                 }
+            }
+            yCoord=m.getPlays().get(m.getPlays().size()-1).getY()+1;
+            sq = getBoard().getBoard()[yCoord][xCoord];
+            while(sq.isOccupied()){
+                m.getPlays().add(new Placement(xCoord, yCoord, sq.getTile().character()));
+                yCoord++;
+                sq = getBoard().getBoard()[yCoord][xCoord];
             }
         }
     }
 
     /**
      * method to remove value of tiles in a frame at the end of a game
-     * @param p
+     * @param f
      * @return total score to be deducted
      */
-    public int finalScore(Player p){
+    public int finalScore(Frame f){
         int total=0;
-        while(!p.getFrame().isEmpty()){//goes through the frame, adding the scores of each letter to total
-            total+=p.getFrame().getTiles().get(0).value();
-            p.getFrame().discardTile(p.getFrame().getTiles().get(0));//remove each tile from the frame after getting score
+        while(!f.isEmpty()){//goes through the frame, adding the scores of each letter to total
+            total+=f.getTiles().get(0).value();
+            f.discardTile(f.getTiles().get(0));//remove each tile from the frame after getting score
         }
         return total;
     }
 
+
+    // Public Getters and Private Setters
+
+    /**
+     * @return currentPlayerNum
+     */
+    public int getCurrentPlayerNum() {
+        return currentPlayerNum;
+    }
+    /**
+     * @return currentFrame
+     */
     public Frame getCurrentFrame() {
         return currentFrame;
     }
-
+    /**
+     * @param currentFrame
+     */
     private void setCurrentFrame(Frame currentFrame) {
         this.currentFrame = currentFrame;
     }
-
+    /**
+     * @return board
+     */
     public Board getBoard() {
         return board;
     }
-
+    /**
+     * @param board
+     */
     private void setBoard(Board board) {
         this.board = board;
     }
 
+    /**
+     * @return pool
+     */
     public Pool getPool() {
         return pool;
     }
 
+    /**
+     * @param pool
+     */
     private void setPool(Pool pool) {
         this.pool = pool;
     }
 
+    /**
+     * @param playerNum
+     * @return player
+     */
     public Player getPlayer(int playerNum){
         if(playerNum == 1){
             return player1;
@@ -417,26 +549,61 @@ public class ScrabbleEngineController
         }
     }
 
+    /**
+     * @return player1
+     */
     public Player getPlayer1() {
         return player1;
     }
 
+    /**
+     * @param player1
+     */
     private void setPlayer1(Player player1) {
         this.player1 = player1;
     }
 
+    /**
+     * @return player2
+     */
     public Player getPlayer2() {
         return player2;
     }
 
+    /**
+     * @param player2
+     */
     private void setPlayer2(Player player2) {
         this.player2 = player2;
     }
 
+    /**
+     * Switches the player number
+     * @author Evan Spendlove
+     */
+    public void incrementCurrentPlayerNum()
+    {
+        if(currentPlayerNum == 1)
+        {
+            currentPlayerNum++;
+        }
+        else
+        {
+            currentPlayerNum = 1;
+        }
+        System.out.println(currentPlayerNum);
+    }
+
+    /**
+     * Increases the turn counter
+     */
     public void incrementTurnCounter(){
         turnCounter++;
     }
 
+    /**
+     * @return turnCounter
+     */
     public int getTurnCounter() {
         return turnCounter;
     }
