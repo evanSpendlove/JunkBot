@@ -1,12 +1,11 @@
 package scrabbleGame.UI.components;
 
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
-import javafx.application.Platform;
 import scrabbleGame.gameEngine.ScrabbleEngineController;
-import scrabbleGame.gameModel.Board;
 import scrabbleGame.gameModel.Move;
 import scrabbleGame.gameModel.Placement;
 
@@ -66,9 +65,18 @@ public class ConsoleController
      */
     private boolean gameStarted = false;
 
+    /**
+     * String holding the help message for the console command "help"
+     */
     private String helpMessage = "<--------- Help Message --------->\n" +
             "Commands: {Start, Quit, Help, Exchange, (Move), Username}\n" +
-            "Start: Can only be used when no game has been started, loads up";
+            "Start: Can only be used when no game has been started, starts the game\n" +
+            "Quit: Quits the game and closes the window\n" +
+            "Help: Help prints this message\n" +
+            "Exchange: Exchange is used to change letters on your frame. Format: Exchange a b c \nExchanging letters will end your turn\n" +
+            "(Move): To play a word, you need to use format <GridRef> <direction> <Word> \nE.g. H8 Across Hello \n" +
+            "Username: Username is used to set the player names. Format: Username <name> <playernum>\n" +
+            "<--------- End --------->";
 
     // Getters and Setters
 
@@ -217,11 +225,7 @@ public class ConsoleController
 
             //Case 1, print the help message
             case 1:
-                addLineToConsole("Help messages");
-                addLineToConsole("Commands: \nQuit - used to quit the game \nHelp- displays help " +
-                        "\nExchange - Exchange can be used to swap letters from your rack, format exchange Letter Letter\n Eg. Exchange A B \nMoves - " +
-                        "To play a move use format <GRID REF> <DIRECTION> <WORD> \nE.G. A1 Across Hello \nUsername entry: Player name can be updated at any point using command <name> <playernum>\n" +
-                        "E.g. Reuben 1");
+                addLineToConsole(helpMessage);
                 break;
 
             //Case 2, exchange letters command
@@ -325,7 +329,8 @@ public class ConsoleController
 
                 //Create the newMove variable using the placement, word in uppercase and direction
                 Move newMove = new Move(play, split[2].toUpperCase(), direction);
-                System.out.println(newMove.toString());
+
+                //Check if its the first turn or not
                 if(getScrabbleEngineController().getTurnCounter() == 1){
                     //If its the first turn, call the placeFirstWord method from Board, check it return 2 for success
                     if(getScrabbleEngineController().getBoard().placeFirstWord(newMove, getScrabbleEngineController().getPlayer(getScrabbleEngineController().getCurrentPlayerNum())) == 2){
@@ -350,14 +355,15 @@ public class ConsoleController
 
                         //Update the board to display the played word
                         getScrabbleEngineController().boardController.updateBoard(getScrabbleEngineController().getBoard());
-                        getScrabbleEngineController().getBoard().printBoard();
-                        getScrabbleEngineController().switchPlayerDelay();
                     }else{
                         //Print an error message
                         addLineToConsole("Failed to play a word");
                         break;
                     }
                 }
+
+                //Switch the turn after move complete
+                getScrabbleEngineController().switchPlayerDelay();
                 break;
 
         }
