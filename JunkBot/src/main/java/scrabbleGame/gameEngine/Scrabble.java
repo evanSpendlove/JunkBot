@@ -1,9 +1,9 @@
 package scrabbleGame.gameEngine;
 
-public class ScrabbleMain {
+public class Scrabble {
 
     public static void main(String[] args)
     {
-        ScrabbleFX.main(args);
+        UI.main(args);
     }
 }
