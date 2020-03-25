@@ -9,6 +9,7 @@ import scrabbleGame.gameModel.*;
 import scrabbleGame.UI.components.*;
 
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 /*
@@ -150,6 +151,7 @@ public class ScrabbleEngineController
 
             consoleController = consoleLoader.getController();
 
+
             consoleController.setScrabbleEngineController(this);
         }
         catch(Exception ex)
@@ -234,6 +236,153 @@ public class ScrabbleEngineController
             currentPlayerNum = 1;
         }
         System.out.println(currentPlayerNum);
+    }
+
+    /**
+     *  method to find any words that have been altered by this play, in order to score them
+     *  @param: A move that has been made
+     *  @return: the score of the words
+     */
+    private int findAdditionalWords(Move m){
+        int count;
+        Placement plays = m.getPlays().get(0);
+        int xCoord = plays.getX();//Set X,Y co-ords to first tile played in move
+        int yCoord = plays.getY();
+        Square sq = this.board.getBoard()[yCoord][xCoord];
+        ArrayList<Placement> AdditionalWord = new ArrayList<>();
+        int scores=0;
+        String word="";
+
+        if(m.getDirection()==1){
+            for(count=0;count<m.getPlays().size();count++){
+                if(this.board.getBoard()[plays.getY()+1][plays.getX()].isOccupied() || this.board.getBoard()[plays.getY()-1][plays.getX()].isOccupied()){
+                    while(sq.isOccupied()){
+                        yCoord++;
+                        sq = this.board.getBoard()[yCoord][xCoord];
+                    }
+                    while(sq.isOccupied()){
+                        AdditionalWord.add(new Placement(xCoord, yCoord, sq.getTile().character()));
+                        word += Character.toString(sq.getTile().character());
+                        yCoord--;
+                    }
+                    scores+=scoring(new Move(AdditionalWord, word, 0));
+                    word="";
+                    AdditionalWord.clear();
+                }
+            }
+        }
+        else{
+            for(count=0;count<m.getPlays().size();count++){
+                if(this.board.getBoard()[plays.getY()][plays.getX()+1].isOccupied() || this.board.getBoard()[plays.getY()][plays.getX()+1].isOccupied()){
+                    while(sq.isOccupied()){
+                        AdditionalWord.add(new Placement(xCoord, yCoord, sq.getTile().character()));
+                        xCoord++;
+                    }
+                    xCoord = plays.getX();
+                    while(sq.isOccupied()){
+                        AdditionalWord.add(new Placement(xCoord, yCoord, sq.getTile().character()));
+                        xCoord--;
+                    }
+                    scores+=scoring(new Move(AdditionalWord, word, 0));
+                    word="";
+                    AdditionalWord.clear();
+                }
+            }
+        }
+        return scores;
+    }
+
+    /**
+     * Method to find the score of a played word
+     * @param m, the move to be scored
+     * @return the total score of the move
+     */
+    public int scoring(Move m) {
+        int letter;//represents the score of each individual tile
+        int score = 0;//represents the score of an entire word
+        int multi = 1;//represents word multipliers
+        Placement tile = m.getPlays().get(0);
+        int x = tile.getX();
+        int y = tile.getY();
+        Square sq = this.board.getBoard()[y][x];
+        checkPreviousSquares(m);
+        while (sq.isOccupied()) {
+            letter = sq.getTile().value();//for each letter in the word, get it's value, and any special tiles
+            switch (sq.getType()) {//Apply letter multipliers to 'letter', and word multipliers to 'multi'
+                case DB_LETTER:
+                    letter *= 2;
+                    break;
+                case TR_LETTER:
+                    letter *= 3;
+                    break;
+                case DB_WORD:
+                case STAR:
+                    multi *= 2;
+                    break;
+                case TR_WORD:
+                    multi *= 3;
+                    break;
+                default:
+                    break;
+            }
+            score += letter;//add the value of each tile to total word score
+            sq.setType(Square.squareType.REGULAR);//Set type of each square to Regular
+            if(m.getDirection()==0){//if the word is horizontal, increment x-axis, else increment y
+                x++;
+            }
+            else{
+                y++;
+            }
+            sq = this.board.getBoard()[y][x];//check the next square on the board
+        }
+        score *= multi;
+        return score;//multiply the total score by the any word multipliers
+    }
+
+    /**
+     * Method which checks if a placed word is being appended to the end of another word
+     * @param m
+     */
+    private void checkPreviousSquares(Move m){
+        int x=m.getPlays().get(0).getX();
+        int y=m.getPlays().get(0).getY();
+
+        if(m.getDirection()==0){
+            x--;
+            Square sq = this.board.getBoard()[y][x];
+            if(sq.isOccupied()) {
+                while (sq.isOccupied()) {
+                    m.getPlays().add(new Placement(x, y, sq.getTile().character()));
+                    x--;
+                    sq = this.board.getBoard()[y][x];
+                }
+            }
+        }
+        else{
+            y--;
+            Square sq = this.board.getBoard()[y][x];
+            if(sq.isOccupied()) {
+                while (sq.isOccupied()) {
+                    m.getPlays().add(new Placement(x, y, sq.getTile().character()));
+                    y--;
+                    sq = this.board.getBoard()[y][x];
+                }
+            }
+        }
+    }
+
+    /**
+     * method to remove value of tiles in a frame at the end of a game
+     * @param p
+     * @return total score to be deducted
+     */
+    public int finalScore(Player p){
+        int total=0;
+        while(!p.getFrame().isEmpty()){//goes through the frame, adding the scores of each letter to total
+            total+=p.getFrame().getTiles().get(0).value();
+            p.getFrame().discardTile(p.getFrame().getTiles().get(0));//remove each tile from the frame after getting score
+        }
+        return total;
     }
 
     public Frame getCurrentFrame() {
