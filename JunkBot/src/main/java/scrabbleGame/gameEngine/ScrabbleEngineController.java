@@ -3,7 +3,11 @@ package scrabbleGame.gameEngine;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.TextArea;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.Pane;
+import scrabbleGame.UI.utilityPanes.ImageViewPane;
 import scrabbleGame.exceptions.TileNotFound;
 import scrabbleGame.gameModel.*;
 import scrabbleGame.UI.components.*;
@@ -35,6 +39,8 @@ import java.util.Arrays;
 
 public class ScrabbleEngineController
 {
+    // Constants
+    public static final boolean USING_THEMED_BOARD = false;
 
     // Controllers
 
@@ -57,6 +63,15 @@ public class ScrabbleEngineController
     public BoardController boardController;
 
     // Components
+
+    @FXML
+    private TextArea ScoreTextArea;
+
+    @FXML
+    private Pane boardBackgroundPane;
+
+    @FXML
+    private Pane boardBackgroundImage;
 
     /**
      * Holds the frame border pane
@@ -182,6 +197,24 @@ public class ScrabbleEngineController
 
             boardController = boardLoader.getController();
 
+            if(this.USING_THEMED_BOARD)
+            {
+                // Load image to imageView
+
+                URL image = this.getClass().getResource("/assets/boardTest.png");
+
+                ImageViewPane ivPane = new ImageViewPane();
+                ivPane.setPrefHeight(600);
+                ivPane.setPrefWidth(600);
+                ivPane.setImageView(new ImageView(new Image(image.toExternalForm())));
+
+                boardBackgroundPane.getChildren().set(0, ivPane);
+                // Object temp = boardBackgroundPane.getChildren().get(0);
+
+
+                //boardBackgroundImage.setImage(new Image(image.toExternalForm()));
+            }
+
             boardController.updateBoard(this.board);
 
             // Load the Console FXML
@@ -191,7 +224,6 @@ public class ScrabbleEngineController
             consoleBorder.setCenter(consoleLoader.load());
 
             consoleController = consoleLoader.getController();
-
 
             consoleController.setScrabbleEngineController(this);
         }
@@ -225,10 +257,12 @@ public class ScrabbleEngineController
         return 2;
     }
 
+    /**
+     * This initialises our backend variables used to store the game
+     * @author Evan Spendlove
+     */
     private void initialiseBackEnd()
     {
-
-
         // Create Game objects
 
         Pool pool = new Pool();
@@ -236,8 +270,8 @@ public class ScrabbleEngineController
         Frame p1Frame = new Frame(pool);
         Frame p2Frame = new Frame(pool);
 
-        Player p1 = new Player("player1", 0, p1Frame);
-        Player p2 = new Player("player2", 0, p2Frame);
+        Player p1 = new Player("Player 1", 0, p1Frame);
+        Player p2 = new Player("Player 2", 0, p2Frame);
 
         Board board = new Board();
         board.resetBoard();
@@ -248,33 +282,8 @@ public class ScrabbleEngineController
         setPlayer1(p1);
         setPlayer2(p2);
         setPool(pool);
-
-        currentPlayerNum = 0;
-    }
-
-
-    /**
-     * This method implements a delay between player switches as to avoid cheating and stop players from seeing their opponents racks
-     * @uses Timer Uses timer to add a delay between turns. Adds a countdown on screen and switches the players after a set time
-     * @author Evan Spendlove
-     */
-    @FXML
-    public void switchPlayerDelay()
-    {
-        //Hide the previous players frame
-        currentFrameController.getFramePanes().setVisible(false);
-
-        //Make the switch player prompt visible
-        switchPlayerPrompt.setVisible(true);
-
-        //Switch the current player number
-        incrementCurrentPlayerNum();
-
-        //Initialise the prompt message
-        String message = "PLEASE SWITCH TO PLAYER " + getCurrentPlayerNum() + "\n\n";
-
-        //Use Timer.run to activate the count down and switch the player
-        Timer.run(this,5, switchPlayerPrompt, message);
+        currentPlayerNum = 2;
+        updateScore();
     }
 
     /**
@@ -290,24 +299,72 @@ public class ScrabbleEngineController
             // If currently 1, transitioning to 2
             case 1:
                 setCurrentFrame(getPlayer1().getFrame()); // Update current Frame
+                currentFrameController.updateFrame(getPlayer1().getFrame());
                 break;
             // If currently 2, transitioning to 1
             case 2:
                 setCurrentFrame(getPlayer2().getFrame()); // Update current Frame
+                currentFrameController.updateFrame(getPlayer2().getFrame());
                 break;
         }
 
         //If the turn counter is less than 2 then refill the users frame
         //We delay the refilling of frames to accommodate for challenges
-        if(turnCounter < 2){
+        if(turnCounter != 0)
+        {
             currentFrameController.refillFrame(getPool());
         }
+
         //Update the frame controller to contain the new players frame
         currentFrameController.updateFrame(getCurrentFrame()); // Update frame controller
         consoleController.addLineToConsole("------- PLAYER " + getCurrentPlayerNum() + "'S TURN -------"); // Notify player
 
         //Increase the turn counter
         incrementTurnCounter();
+    }
+
+    /**
+     * This method implements a delay between player switches as to avoid cheating and stop players from seeing their opponents racks
+     * @uses Timer Uses timer to add a delay between turns. Adds a countdown on screen and switches the players after a set time
+     * @author Evan Spendlove
+     */
+    @FXML
+    public void switchPlayerDelay()
+    {
+        currentFrameController.getFramePanes().setVisible(false);
+        switchPlayerPrompt.setVisible(true);
+        incrementCurrentPlayerNum();
+
+        String username = getPlayer1().getUsername().toUpperCase();
+
+        if(getCurrentPlayerNum() == 2)
+        {
+            username = getPlayer2().getUsername().toUpperCase();
+        }
+
+        String message = "\n\n\n\nPLEASE SWITCH TO " + username + "\n\n";
+        Timer.run(this,1, switchPlayerPrompt, message);
+    }
+
+    public void updateUsername(int player, String username)
+    {
+        switch(player)
+        {
+            case 1:
+                getPlayer1().setUsername(username);
+                break;
+            case 2:
+                getPlayer2().setUsername(username);
+                break;
+        }
+
+        updateScore();
+    }
+
+    public void updateScore()
+    {
+        ScoreTextArea.clear();
+        ScoreTextArea.setText(getPlayer1().getUsername() + "\t| " + getPlayer1().getScore() +  " \t|||\t" + getPlayer2().getUsername() + "\t| " + getPlayer2().getScore());
     }
 
     /**
@@ -340,6 +397,7 @@ public class ScrabbleEngineController
                         yCoord2++;
                         sq = getBoard().getBoard()[yCoord2][xCoord];//increment through word
                     }
+                    System.out.println("Word: " + word);
                     scores+=calculateScoring(new Move(AdditionalWord, word, 0));//after finding an additional, perpendicular word, have it scored
                     word="";
                     AdditionalWord.clear();
@@ -361,6 +419,7 @@ public class ScrabbleEngineController
                         xCoord2++;
                         sq = getBoard().getBoard()[yCoord][xCoord2];
                     }
+                    System.out.println("Word: " + word);
                     scores+=calculateScoring(new Move(AdditionalWord, word, 0));
                     word="";
                     AdditionalWord.clear();

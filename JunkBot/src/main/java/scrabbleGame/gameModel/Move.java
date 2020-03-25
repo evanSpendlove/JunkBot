@@ -59,7 +59,7 @@ public class Move implements java.io.Serializable
      */
     private void setWord(String word)
     {
-        if(!word.isEmpty() && !word.isBlank())
+        if(!word.isEmpty())
         {
             this.word = word;
         }
