@@ -382,13 +382,18 @@ public class ScrabbleEngineController
         Square sq = getBoard().getBoard()[yCoord][xCoord];//look at first tile in move
 
         if(m.getDirection()==0){//check direction of word
+
             for(count=0;count<m.getPlays().size();count++){//check every tile in move
-                if(getBoard().getBoard()[m.getPlays().get(count).getY()+1][m.getPlays().get(count).getX()].isOccupied() || getBoard().getBoard()[m.getPlays().get(count).getY()-1][m.getPlays().get(count).getX()].isOccupied()){
+
+                if(getBoard().getBoard()[m.getPlays().get(count).getY()+1][m.getPlays().get(count).getX()].isOccupied() || getBoard().getBoard()[m.getPlays().get(count).getY()-1][m.getPlays().get(count).getX()].isOccupied())
+                {
                     //if there is a tile placed directly above or below the tile
                     int yCoord2=yCoord;
+
                     while(sq.isOccupied()){//go through to the end of the perpendicular word
                         yCoord2--;
                         sq = getBoard().getBoard()[yCoord2][xCoord];
+                        System.out.println("Y2 Coord: " + yCoord2 + ", Current Square: " + sq.toString());
                     }
                     yCoord2--;
                     while(sq.isOccupied()){//when at the end of the word, go through to the other end, adding the tiles to a new move object
@@ -398,9 +403,12 @@ public class ScrabbleEngineController
                         sq = getBoard().getBoard()[yCoord2][xCoord];//increment through word
                     }
                     System.out.println("Word: " + word);
-                    scores+=calculateScoring(new Move(AdditionalWord, word, 0));//after finding an additional, perpendicular word, have it scored
-                    word="";
-                    AdditionalWord.clear();
+                    if(!word.equals(""))
+                    {
+                        scores+=calculateScoring(new Move(AdditionalWord, word, 0));//after finding an additional, perpendicular word, have it scored
+                        word="";
+                        AdditionalWord.clear();
+                    }
                 }
             }
         }
@@ -420,9 +428,12 @@ public class ScrabbleEngineController
                         sq = getBoard().getBoard()[yCoord][xCoord2];
                     }
                     System.out.println("Word: " + word);
-                    scores+=calculateScoring(new Move(AdditionalWord, word, 0));
-                    word="";
-                    AdditionalWord.clear();
+                    if(!word.equals(""))
+                    {
+                        scores+=calculateScoring(new Move(AdditionalWord, word, 0));//after finding an additional, perpendicular word, have it scored
+                        word="";
+                        AdditionalWord.clear();
+                    }
                 }
             }
         }
@@ -434,7 +445,8 @@ public class ScrabbleEngineController
      * @param m
      * @return total score of played move
      */
-    public int scoring(Move m){
+    public int scoring(Move m)
+    {
         if(m.getPlays().size()==7){
             return calculateScoring(m)+findAdditionalWords(m)+50;
         }
@@ -446,8 +458,9 @@ public class ScrabbleEngineController
      * @param m, the move to be scored
      * @return the total score of the move
      */
-    private int calculateScoring(Move m) {
-        int letter;//represents the score of each individual tile
+    private int calculateScoring(Move m)
+    {
+        int letter = 0;//represents the score of each individual tile
         int score = 0;//represents the score of an entire word
         int multi = 1;//represents word multipliers
         Placement tile = m.getPlays().get(0);
@@ -455,8 +468,14 @@ public class ScrabbleEngineController
         int y = tile.getY();
         Square sq = this.board.getBoard()[y][x];
         checkSurroundingSquares(m);
-        while (sq.isOccupied()) {
+
+        while (sq.isOccupied())
+        {
             letter = sq.getTile().value();//for each letter in the word, get it's value, and any special tiles
+
+            System.out.println("Square type: " + sq.getType());
+            System.out.println("Square - X: " + x  + ", Y: " + y);
+
             switch (sq.getType()) {//Apply letter multipliers to 'letter', and word multipliers to 'multi'
                 case DB_LETTER:
                     letter *= 2;
@@ -465,13 +484,13 @@ public class ScrabbleEngineController
                     letter *= 3;
                     break;
                 case DB_WORD:
+                    multi = 2;
+                    break;
                 case STAR:
-                    multi *= 2;
+                    multi = 2;
                     break;
                 case TR_WORD:
-                    multi *= 3;
-                    break;
-                default:
+                    multi = 3;
                     break;
             }
             score += letter;//add the value of each tile to total word score
@@ -484,6 +503,9 @@ public class ScrabbleEngineController
             }
             sq = getBoard().getBoard()[y][x];//check the next square on the board
         }
+
+        System.out.println("Word multiplier: " + multi + ", letter multiplier: " + letter);
+
         score *= multi;
         return score;//multiply the total score by the any word multipliers
     }

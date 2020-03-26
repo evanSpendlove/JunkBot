@@ -1,5 +1,6 @@
 package scrabbleGame.gameModel;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -25,6 +26,9 @@ public class Move implements java.io.Serializable
     // Set afterwards or privately
     private boolean bingo = false;
     private int score;
+
+    private boolean includesBlank = false;
+    private ArrayList<Character> blankLetter = new ArrayList<>();
 
     // Constructor
 
@@ -170,6 +174,37 @@ public class Move implements java.io.Serializable
         {
             throw new IllegalArgumentException("The score of a move cannot be set to zero or a negative value.");
         }
+    }
+
+    /**
+     * Getter for checking if the move includes a blank letter
+     * @return boolean Returns true if the move contains a (previously) blank letter
+     */
+    public boolean includesBlank() {
+        return includesBlank;
+    }
+
+    private void setIncludesBlank(boolean includesBlank) {
+        this.includesBlank = includesBlank;
+    }
+
+    /**
+     * Getter for the character that replaced the blank.
+     * @return char Returns the character that replaced the blank.
+     */
+    public ArrayList<Character>  getBlankLetter()
+    {
+        return blankLetter;
+    }
+
+    /**
+     * Setter for the character that replaced the blank.
+     * @param blankLetter Pass the character that replaced the blank tile.
+     */
+    public void addBlankLetter(char blankLetter)
+    {
+        setIncludesBlank(true);
+        this.blankLetter.add(blankLetter);
     }
 
     /**

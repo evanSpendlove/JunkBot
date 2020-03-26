@@ -313,6 +313,7 @@ public class Board implements java.io.Serializable
                 {
                     f.exchangeBlank(Tile.getInstance(m.plays.get(x).getLetter()));
                     temp.remove(Tile.BLANK);
+                    m.addBlankLetter(m.plays.get(x).getLetter());
                 }
                 else
                 {
@@ -578,7 +579,6 @@ public class Board implements java.io.Serializable
         {
             Placement q = m.plays.get(x);
             board[q.getY()][q.getX()].setTile(Tile.getInstance(q.getLetter()));
-            board[q.getY()][q.getX()].setType(Square.squareType.REGULAR);
         }
 
         wordsPlayed.add(m.getWord());
