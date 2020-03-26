@@ -10,8 +10,8 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.release>11</maven.compiler.release>
-        <javafx.version>11</javafx.version>
+        <maven.compiler.release>8</maven.compiler.release>
+        <javafx.version>8</javafx.version>
     </properties>
     <dependencies>
         <dependency>
@@ -32,6 +32,7 @@
             <artifactId>maven-shade-plugin</artifactId>
             <version>3.2.1</version>
         </dependency>
+        <!--
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
@@ -42,11 +43,13 @@
             <artifactId>javafx-fxml</artifactId>
             <version>${javafx.version}</version>
         </dependency>
-        <dependency> <!-- Generic dependency -->
+
+        <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-graphics</artifactId>
             <version>${javafx.version}</version>
         </dependency>
+        -->
     </dependencies>
     <build>
         <plugins>

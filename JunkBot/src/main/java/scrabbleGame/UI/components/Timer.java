@@ -26,7 +26,6 @@ public class Timer
         Timeline stopWatchTimeline = new Timeline(new KeyFrame(Duration.seconds(1), (ActionEvent event) -> {
             seconds--;
             displayArea.setText(message + Integer.toString(seconds) + "s");
-            System.out.println("Seconds: " + seconds);
         }));
 
         stopWatchTimeline.setOnFinished(actionEvent ->

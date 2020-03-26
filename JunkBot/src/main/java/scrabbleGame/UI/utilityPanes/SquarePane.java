@@ -5,6 +5,7 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
+import scrabbleGame.gameEngine.ScrabbleEngineController;
 import scrabbleGame.gameModel.Square;
 
 public class SquarePane extends StackPane
@@ -40,13 +41,15 @@ public class SquarePane extends StackPane
     public void updateSquare(Square newSquare)
     {
         this.square = newSquare;
-        this.text.setText(newSquare.getType().toString());
-        this.text.setStyle("-fx-fill: white");
-        this.text.setStyle("-fx-font-size: 6");
 
-        //this.text.setStyle("-fx-background-color: magenta");
+        if(!ScrabbleEngineController.USING_THEMED_BOARD)
+        {
+            this.text.setText(newSquare.getType().toString());
+            this.text.setStyle("-fx-fill: white");
+            this.text.setStyle("-fx-font-size: 6");
 
-        setSquareColour(newSquare);
+            setSquareColour(newSquare);
+        }
 
         this.getChildren().add(sp);
         this.getChildren().add(text);

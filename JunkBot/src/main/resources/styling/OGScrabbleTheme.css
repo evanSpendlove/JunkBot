@@ -15,6 +15,14 @@
     -fx-background-color: text-area-background ;
 }
 
+.text-area.scoreTextArea .text {
+    -fx-text-alignment: center;
+}
+
+.text-area.playerChangeText .text {
+    -fx-text-alignment: center;
+}
+
 .starSquare {
     -fx-background-color: rgb(246, 168, 155);
 }
