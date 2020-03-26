@@ -97,7 +97,7 @@ public class ScrabbleEngineController
     /**
      * Holds the current pool object
      */
-    private Pool pool;
+    private Pool pool = new Pool();
 
     /**
      * Holds the player1 Player object
