@@ -1,5 +1,6 @@
 package scrabbleGame.gameEngine;
 
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.TextArea;
@@ -148,7 +149,10 @@ public class ScrabbleEngineController
 
         initialiseBackEnd();
         loadFXMLFiles();
-
+        int turnChoice = order();
+        if(turnChoice == 2){
+            incrementCurrentPlayerNum();
+        }
         /*
 
         // How to dynamically change a stylesheet
@@ -374,69 +378,68 @@ public class ScrabbleEngineController
      */
     private int findAdditionalWords(Move m)
     {
-        int count;
-        int xCoord = m.getPlays().get(0).getX();//Set X,Y co-ords to first tile played in move
-        int yCoord = m.getPlays().get(0).getY();
         ArrayList<Placement> AdditionalWord = new ArrayList<>();
         int scores=0;
         String word="";
-        Square sq = getBoard().getBoard()[yCoord][xCoord];//look at first tile in move
+        Boolean flag = false;
 
-        if(m.getDirection()==0){//check direction of word
-
-            for(count=0;count<m.getPlays().size();count++){//check every tile in move
-
-                if(getBoard().getBoard()[m.getPlays().get(count).getY()+1][m.getPlays().get(count).getX()].isOccupied() || getBoard().getBoard()[m.getPlays().get(count).getY()-1][m.getPlays().get(count).getX()].isOccupied())
-                {
-                    //if there is a tile placed directly above or below the tile
-                    int yCoord2=yCoord;
-
-                    while(sq.isOccupied()){//go through to the end of the perpendicular word
-                        yCoord2--;
-                        sq = getBoard().getBoard()[yCoord2][xCoord];
-                        System.out.println("Y2 Coord: " + yCoord2 + ", Current Square: " + sq.toString());
-                    }
-                    yCoord2--;
-                    while(sq.isOccupied()){//when at the end of the word, go through to the other end, adding the tiles to a new move object
-                        AdditionalWord.add(new Placement(xCoord, yCoord, sq.getTile().character()));
-                        word += Character.toString(sq.getTile().character());//add letter by letter to new word string
-                        yCoord2++;
-                        sq = getBoard().getBoard()[yCoord2][xCoord];//increment through word
-                    }
-                    System.out.println("Word: " + word);
-                    if(!word.equals(""))
-                    {
-                        scores+=calculateScoring(new Move(AdditionalWord, word, 0));//after finding an additional, perpendicular word, have it scored
-                        word="";
-                        AdditionalWord.clear();
+        if(m.getDirection() == 0){
+            for(int i = 0; i < m.getPlays().size(); i++){
+                int newWordSize = 0;
+                int xCoord = m.getPlays().get(i).getX();
+                int yCoordUp = m.getPlays().get(i).getY()-1;
+                int yCoordDown = m.getPlays().get(i).getY()+1;
+                Square sq = getBoard().getBoard()[yCoordUp][xCoord];
+                while(sq.isOccupied()){
+                    AdditionalWord.add(new Placement(xCoord,yCoordUp,sq.getTile().character()));
+                    yCoordUp--;
+                    sq = getBoard().getBoard()[yCoordUp][xCoord];
+                }
+                AdditionalWord.add(m.getPlays().get(i));
+                sq = getBoard().getBoard()[yCoordDown][xCoord];
+                while(sq.isOccupied()){
+                    AdditionalWord.add(new Placement(xCoord,yCoordDown,sq.getTile().character()));
+                    yCoordDown++;
+                    sq = getBoard().getBoard()[yCoordDown][xCoord];
+                }
+                if(AdditionalWord.size() != 1){
+                    for(int j = 0; j<AdditionalWord.size(); j++){
+                        int newY = AdditionalWord.get(j).getY();
+                        int newX = AdditionalWord.get(j).getX();
+                        scores += getBoard().getBoard()[newY][newX].getTile().value();
                     }
                 }
+
+                AdditionalWord.clear();
             }
-        }
-        else{//second half of method is the same as first, for a vertical word
-            for(count=0;count<m.getPlays().size();count++){
-                if(getBoard().getBoard()[m.getPlays().get(count).getY()][m.getPlays().get(count).getX()+1].isOccupied() || getBoard().getBoard()[m.getPlays().get(count).getY()][m.getPlays().get(count).getX()+1].isOccupied()){
-                    int xCoord2=xCoord;
-                    while(sq.isOccupied()){
-                        xCoord2--;
-                        sq = getBoard().getBoard()[yCoord][xCoord2];
-                        System.out.println("X2 Coord: " + xCoord2 + ", Current Square: " + sq.toString());
-                    }
-                    xCoord2++;
-                    while(xCoord2<xCoord){
-                        AdditionalWord.add(new Placement(xCoord2, yCoord, sq.getTile().character()));
-                        word += Character.toString(sq.getTile().character());
-                        xCoord2++;
-                        sq = getBoard().getBoard()[yCoord][xCoord2];
-                    }
-                    System.out.println("Word: " + word);
-                    if(!word.equals(""))
-                    {
-                        scores+=calculateScoring(new Move(AdditionalWord, word, 0));//after finding an additional, perpendicular word, have it scored
-                        word="";
-                        AdditionalWord.clear();
+        }else {
+            for(int i = 0; i < m.getPlays().size(); i++){
+                System.out.println(m.getPlays().toString());
+                int xCoordLeft = m.getPlays().get(i).getX() - 1;
+                int xCoordRight = m.getPlays().get(i).getX() + 1;
+                int yCoord = m.getPlays().get(i).getY();
+                Square sq = getBoard().getBoard()[yCoord][xCoordLeft];
+                while(sq.isOccupied()){
+                    AdditionalWord.add(new Placement(xCoordLeft, yCoord, sq.getTile().character()));
+                    xCoordLeft--;
+                    sq = getBoard().getBoard()[yCoord][xCoordLeft];
+                }
+                AdditionalWord.add(m.getPlays().get(i));
+                sq = getBoard().getBoard()[yCoord][xCoordRight];
+                while(sq.isOccupied()){
+                    AdditionalWord.add(new Placement(xCoordRight, yCoord, sq.getTile().character()));
+                    xCoordRight++;
+                    sq = getBoard().getBoard()[yCoord][xCoordRight];
+                }
+                if(AdditionalWord.size() != 1){
+                    for(int j = 0; j<AdditionalWord.size(); j++){
+                        int newY = AdditionalWord.get(j).getY();
+                        int newX = AdditionalWord.get(j).getX();
+                        scores += getBoard().getBoard()[newY][newX].getTile().value();
                     }
                 }
+
+                AdditionalWord.clear();
             }
         }
         return scores;
@@ -449,11 +452,18 @@ public class ScrabbleEngineController
      */
     public int scoring(Move m)
     {
+        System.out.println(m.toString());
+        Move original = m;
         if(m.isBingo())
         {
-            return calculateScoring(m)+findAdditionalWords(m)+50;
+            return calculateScoring(m)+findAdditionalWords(original)+50;
         }
-        return calculateScoring(m)+findAdditionalWords(m);
+
+        int check = findAdditionalWords(m);
+        System.out.println("Check = " + check);
+        System.out.println(original.toString() + m.toString());
+        check += calculateScoring(original);
+        return check;
     }
 
     /**
@@ -463,21 +473,24 @@ public class ScrabbleEngineController
      */
     private int calculateScoring(Move m)
     {
+        int playPtr = 0;
+        Boolean flag = true;
         int letter = 0;//represents the score of each individual tile
         int score = 0;//represents the score of an entire word
         int multi = 1;//represents word multipliers
-        Placement tile = m.getPlays().get(0);
+        Placement tile = m.getPlays().get(playPtr);
         int x = tile.getX();
         int y = tile.getY();
         Square sq = this.board.getBoard()[y][x];
         checkSurroundingSquares(m);
+        System.out.println(m.toString());
 
-        while (sq.isOccupied())
+        while (flag)
         {
             letter = sq.getTile().value();//for each letter in the word, get it's value, and any special tiles
 
             System.out.println("Square type: " + sq.getType());
-            System.out.println("Square - X: " + x  + ", Y: " + y);
+            System.out.println("Square - X: " + x  + ", Y: " + y + ", Letter: " + letter);
 
             switch (sq.getType()) {//Apply letter multipliers to 'letter', and word multipliers to 'multi'
                 case DB_LETTER:
@@ -496,20 +509,24 @@ public class ScrabbleEngineController
                     multi = 3;
                     break;
             }
+            System.out.println(", New Letter: " + letter);
             score += letter;//add the value of each tile to total word score
             sq.setType(Square.squareType.REGULAR);//Set type of each square to Regular
-            if(m.getDirection()==0){//if the word is horizontal, increment x-axis, else increment y
-                x++;
+            if(playPtr < m.getPlays().size()-1){
+                playPtr++;
+            }else{
+                flag = false;
             }
-            else{
-                y++;
-            }
+            tile = m.getPlays().get(playPtr);
+            x = tile.getX();
+            y= tile.getY();
             sq = getBoard().getBoard()[y][x];//check the next square on the board
         }
 
-        System.out.println("Word multiplier: " + multi + ", letter multiplier: " + letter);
+        System.out.println("Word multiplier: " + multi + ", letter multiplier: " + letter + ", Score: " + score);
 
         score *= multi;
+        System.out.println(", New Score = " + score);
         return score;//multiply the total score by the any word multipliers
     }
 
@@ -520,39 +537,63 @@ public class ScrabbleEngineController
     private void checkSurroundingSquares(Move m){
         int xCoord=m.getPlays().get(0).getX();
         int yCoord=m.getPlays().get(0).getY();
+        int xCoord2 = xCoord;
+        int yCoord2 = yCoord;
+        Boolean flag = false;
 
         if(m.getDirection()==0){//if word is horizontal
-            xCoord--;//check square directly before first tile in move
-            Square sq = getBoard().getBoard()[yCoord][xCoord];
+            xCoord2--;//check square directly before first tile in move
+            Square sq = getBoard().getBoard()[yCoord][xCoord2];
             if(sq.isOccupied()) {//if it's occupied
                 while(sq.isOccupied()){//go back through the tiles until a blank is found, adding each tile to move
-                    m.getPlays().add(new Placement(xCoord, yCoord, sq.getTile().character()));
-                    xCoord--;
-                    sq = getBoard().getBoard()[yCoord][xCoord];
+                    m.getPlays().add(new Placement(xCoord2, yCoord, sq.getTile().character()));
+                    xCoord2--;
+                    sq = getBoard().getBoard()[yCoord][xCoord2];
                 }
             }
-            xCoord=m.getPlays().get(m.getPlays().size()-1).getX()+1;//set xCoord to first tile after move
+            xCoord++;
             sq = getBoard().getBoard()[yCoord][xCoord];
             while(sq.isOccupied()){//if occupied, go though tiles until an empty square is found - add all tiles to move
-                m.getPlays().add(new Placement(xCoord, yCoord, sq.getTile().character()));
+                Placement temp = new Placement(xCoord, yCoord, sq.getTile().character());
+                for(int i = 0; i < m.getPlays().size(); i++){
+                    if(m.getPlays().get(i).getX() == temp.getX() && m.getPlays().get(i).getY() == temp.getY() && m.getPlays().get(i).getLetter() == temp.getLetter()){
+                       flag = true;
+                    }
+                }
+                if(!flag){
+                    m.getPlays().add(temp);
+                }else{
+                    flag = false;
+                }
+
                 xCoord++;
                 sq = getBoard().getBoard()[yCoord][xCoord];
             }
         }
         else{//Same as previously, but for a vertical word
-            yCoord--;
-            Square sq = getBoard().getBoard()[yCoord][xCoord];
+            yCoord2--;
+            Square sq = getBoard().getBoard()[yCoord2][xCoord];
             if(sq.isOccupied()) {
                 while (sq.isOccupied()) {
-                    m.getPlays().add(new Placement(xCoord, yCoord, sq.getTile().character()));
-                    yCoord--;
-                    sq = getBoard().getBoard()[yCoord][xCoord];
+                    m.getPlays().add(new Placement(xCoord, yCoord2, sq.getTile().character()));
+                    yCoord2--;
+                    sq = getBoard().getBoard()[yCoord2][xCoord];
                 }
             }
-            yCoord=m.getPlays().get(m.getPlays().size()-1).getY()+1;
+            yCoord++;
             sq = getBoard().getBoard()[yCoord][xCoord];
             while(sq.isOccupied()){
-                m.getPlays().add(new Placement(xCoord, yCoord, sq.getTile().character()));
+                Placement temp = new Placement(xCoord, yCoord, sq.getTile().character());
+                for(int i = 0; i < m.getPlays().size(); i++){
+                    if(m.getPlays().get(i).getX() == temp.getX() && m.getPlays().get(i).getY() == temp.getY() && m.getPlays().get(i).getLetter() == temp.getLetter()){
+                        flag = true;
+                    }
+                }
+                if(!flag){
+                    m.getPlays().add(temp);
+                }else{
+                    flag = false;
+                }
                 yCoord++;
                 sq = getBoard().getBoard()[yCoord][xCoord];
             }
