@@ -1,0 +1,74 @@
+.square {
+    board-grid-color: #008000;
+}
+
+.text-area {
+    text-area-background: black;
+    -fx-text-fill: lime
+}
+
+.text-field
+{
+    -fx-background-color: black;
+    -fx-text-fill: lime;
+    -fx-border-color: lime;
+    -fx-border-width: 0.5 0 0 0; /* Top border only */
+}
+
+.text-area .content {
+    -fx-background-color: text-area-background ;
+}
+
+.text-area.scoreTextArea .text {
+    -fx-text-alignment: center;
+}
+
+.text-area.playerChangeText .text {
+    -fx-text-alignment: center;
+}
+
+
+#windowBackground
+{
+    -fx-background-color: #282828;
+}
+
+*.text
+{
+    -fx-text-fill: white;
+}
+
+.frame {
+    /*-fx-background-color: #6c5721;*/
+    -fx-background-color: black;
+}
+
+.starSquare {
+    -fx-background-color: board-grid-color, rgb(246, 0, 211);
+    -fx-background-insets: 0, 1 1 1 1 ;
+}
+
+.tripleLetter {
+    -fx-background-color: board-grid-color, rgb(196, 50, 17);
+    -fx-background-insets: 0, 1 1 1 1 ;
+}
+
+.tripleWord {
+    -fx-background-color: board-grid-color, rgb(191, 19, 79);
+    -fx-background-insets: 0, 1 1 1 1 ;
+}
+
+.doubleLetter{
+    -fx-background-color: board-grid-color, rgb(15, 146, 213);
+    -fx-background-insets: 0, 1 1 1 1 ;
+}
+
+.doubleWord{
+    -fx-background-color: board-grid-color, rgb(34, 96, 230);
+    -fx-background-insets: 0, 1 1 1 1 ;
+}
+
+.regularSquare{
+    -fx-background-color: board-grid-color, rgb(22, 22, 22);
+    -fx-background-insets: 0, 1 1 1 1 ;
+}

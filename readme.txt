@@ -101,3 +101,11 @@ see [Trello](https://trello.com/b/54o8lgQ2/core-progress)
 | |Square Class  |
 | |Square Test  |
 ****************
+
+## Sprint 3 - Short Docs
+### Who did what
+| Reuben        | Evan          | Cal           |
+| ------------- | ------------- | ------------- |
+| Game Engine  |JavaFX (FXML, etc.)   |Scoring
+| some Testing   |Some Testing     |Some testing
+****************

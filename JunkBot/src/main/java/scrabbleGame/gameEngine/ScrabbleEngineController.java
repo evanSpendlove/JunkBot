@@ -257,7 +257,7 @@ public class ScrabbleEngineController
             SquarePane sp = new SquarePane();
             sp.updateSquare(new Square(), Character.toString(c).toUpperCase());
             c++;
-            boardYLabelLeft.add(sp, 0, i);
+            boardXLabelTop.add(sp, i, 0);
         }
 
         c = 'a';
@@ -267,21 +267,21 @@ public class ScrabbleEngineController
             SquarePane sp = new SquarePane();
             sp.updateSquare(new Square(), Character.toString(c).toUpperCase());
             c++;
-            boardYLabelRight.add(sp, 0, i);
-        }
-
-        for(int i = 0; i < 15; i++)
-        {
-            SquarePane sp = new SquarePane();
-            sp.updateSquare(new Square(), Integer.toString(i+1));
-            boardXLabelTop.add(sp, i, 0);
-        }
-
-        for(int i = 0; i < 15; i++)
-        {
-            SquarePane sp = new SquarePane();
-            sp.updateSquare(new Square(), Integer.toString(i+1));
             boardXLabelBottom.add(sp, i, 0);
+        }
+
+        for(int i = 0; i < 15; i++)
+        {
+            SquarePane sp = new SquarePane();
+            sp.updateSquare(new Square(), Integer.toString(i+1));
+            boardYLabelLeft.add(sp, 0, i);
+        }
+
+        for(int i = 0; i < 15; i++)
+        {
+            SquarePane sp = new SquarePane();
+            sp.updateSquare(new Square(), Integer.toString(i+1));
+            boardYLabelRight.add(sp, 0, i);
         }
     }
 

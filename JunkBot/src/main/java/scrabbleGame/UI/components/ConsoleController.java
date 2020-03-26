@@ -430,7 +430,7 @@ public class ConsoleController
      * @param direction
      * @return placements, a list of Placement objects
      */
-    List<Placement> createPlacement(String word, int[] gridRef, int direction){
+    public List<Placement> createPlacement(String word, int[] gridRef, int direction){
         //Initialise a List, character array (set equal to the input word.toCharArray()) and a letter pointer
         List<Placement> placements = new ArrayList<Placement>();
         char[] letters = word.toCharArray();
