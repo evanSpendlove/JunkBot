@@ -3,6 +3,7 @@ package scrabbleGame.gameModel;
 import java.io.*;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Scanner;
 
@@ -362,7 +363,7 @@ public class Board implements java.io.Serializable
             return true;
         }
 
-        return isConnected(m) && alternateHookCheck(m);
+        return isConnected(m) && (alternateHookCheck(m) != null);
     }
 
     /**
@@ -516,7 +517,7 @@ public class Board implements java.io.Serializable
         return hooks;
     }
 
-    private boolean alternateHookCheck(Move m)
+    private ArrayList<Placement> alternateHookCheck(Move m)
     {
         int firstRow = m.plays.get(0).getX();
         int lastRow = m.getPlays().get(m.getPlays().size() - 1).getX();
@@ -527,20 +528,28 @@ public class Board implements java.io.Serializable
         int boxBottom = Math.min(lastRow + 1, BOARD_DIMENSION - 1);
         int boxLeft = Math.max(firstColumn - 1,0);
         int boxRight = Math.min(lastColumn + 1, BOARD_DIMENSION - 1);
-        boolean connectionFound = false;
 
-        for (int i = boxTop; i <= boxBottom && !connectionFound; i++)
+        ArrayList<Placement> hooks = new ArrayList<>();
+
+        for (int i = boxTop; i <= boxBottom; i++)
         {
-            for (int j = boxLeft; j <= boxRight && !connectionFound; j++)
+            for (int j = boxLeft; j <= boxRight; j++)
             {
-                if (getBoard()[i][j].isOccupied())
+                if (getBoard()[j][i].isOccupied() && !m.plays.contains(new Placement(i, j, getBoard()[j][i].getTile().character())))
                 {
-                    connectionFound = true;
+                    hooks.add(new Placement(i, j, getBoard()[j][i].getTile().character()));
                 }
             }
         }
 
-        return connectionFound;
+        if(hooks.size() == 0)
+        {
+            return null;
+        }
+
+        System.out.println("Hooks: " + Arrays.toString(hooks.toArray()));
+
+        return hooks;
     }
 
     /**

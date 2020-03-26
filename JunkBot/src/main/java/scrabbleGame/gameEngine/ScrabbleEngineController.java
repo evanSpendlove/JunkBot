@@ -372,7 +372,8 @@ public class ScrabbleEngineController
      * @param m
      * @return total score of all such words
      */
-    private int findAdditionalWords(Move m){
+    private int findAdditionalWords(Move m)
+    {
         int count;
         int xCoord = m.getPlays().get(0).getX();//Set X,Y co-ords to first tile played in move
         int yCoord = m.getPlays().get(0).getY();
@@ -419,6 +420,7 @@ public class ScrabbleEngineController
                     while(sq.isOccupied()){
                         xCoord2--;
                         sq = getBoard().getBoard()[yCoord][xCoord2];
+                        System.out.println("X2 Coord: " + xCoord2 + ", Current Square: " + sq.toString());
                     }
                     xCoord2++;
                     while(xCoord2<xCoord){
@@ -447,7 +449,8 @@ public class ScrabbleEngineController
      */
     public int scoring(Move m)
     {
-        if(m.getPlays().size()==7){
+        if(m.isBingo())
+        {
             return calculateScoring(m)+findAdditionalWords(m)+50;
         }
         return calculateScoring(m)+findAdditionalWords(m);
@@ -672,7 +675,6 @@ public class ScrabbleEngineController
         {
             currentPlayerNum = 1;
         }
-        System.out.println(currentPlayerNum);
     }
 
     /**
