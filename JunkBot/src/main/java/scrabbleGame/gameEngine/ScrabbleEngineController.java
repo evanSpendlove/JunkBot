@@ -517,7 +517,10 @@ public class ScrabbleEngineController
         Move original = m;
         if(m.isBingo())
         {
-            return calculateScoring(m)+findAdditionalWords(original)+50;
+            int finalScore = findAdditionalWords(m);
+            finalScore += calculateScoring(m);
+            finalScore += 50;
+            return finalScore;
         }
 
         int check = findAdditionalWords(m);
