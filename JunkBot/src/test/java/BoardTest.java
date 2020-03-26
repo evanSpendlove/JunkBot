@@ -187,7 +187,6 @@ public class BoardTest
 
         assertEquals("Q", test.getWordsPlayed().get(0));
         assertEquals('Q', test.getBoard()[7][7].getTile().character());
-        assertEquals(Square.squareType.REGULAR, test.getBoard()[7][7].getType());
     }
 
     @Test

@@ -1,30 +1,23 @@
 package scrabbleGame.gameEngine;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.TextArea;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import scrabbleGame.UI.utilityPanes.ImageViewPane;
+import scrabbleGame.UI.utilityPanes.SquarePane;
+import scrabbleGame.UI.utilityPanes.TilePane;
 import scrabbleGame.exceptions.TileNotFound;
 import scrabbleGame.gameModel.*;
 import scrabbleGame.UI.components.*;
 
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
-
-/*
-    This is the main Scrabble Engine Controller
-
-    This is where all the game control should go.
-
-    TODO - Remove bloat, consolidate methods, integrate JavaFX into existing objects (wrapper methods).
-    TODO - Comment + remove prints
- */
 
 /**
  * <h1>ScrabbleEngineController Class</h1>
@@ -66,6 +59,18 @@ public class ScrabbleEngineController
     // Components
 
     @FXML
+    private GridPane boardYLabelLeft;
+
+    @FXML
+    private GridPane boardYLabelRight;
+
+    @FXML
+    private GridPane boardXLabelTop;
+
+    @FXML
+    private GridPane boardXLabelBottom;
+
+    @FXML
     private TextArea ScoreTextArea;
 
     @FXML
@@ -96,7 +101,7 @@ public class ScrabbleEngineController
      * Holds the switchPlayerPrompt Text area
      */
     @FXML
-    private TextArea switchPlayerPrompt;
+    public TextArea switchPlayerPrompt;
 
     // Back-End Objects
 
@@ -149,8 +154,11 @@ public class ScrabbleEngineController
 
         initialiseBackEnd();
         loadFXMLFiles();
+
         int turnChoice = order();
-        if(turnChoice == 2){
+
+        if(turnChoice == 2)
+        {
             incrementCurrentPlayerNum();
         }
         /*
@@ -201,6 +209,10 @@ public class ScrabbleEngineController
 
             boardController = boardLoader.getController();
 
+            // Load board outline
+
+            loadBoardOutline();
+
             if(this.USING_THEMED_BOARD)
             {
                 // Load image to imageView
@@ -234,6 +246,42 @@ public class ScrabbleEngineController
         catch(Exception ex)
         {
             ex.printStackTrace();
+        }
+    }
+
+    private void loadBoardOutline()
+    {
+        char c = 'a';
+        for(int i = 0; i < 15; i++)
+        {
+            SquarePane sp = new SquarePane();
+            sp.updateSquare(new Square(), Character.toString(c).toUpperCase());
+            c++;
+            boardYLabelLeft.add(sp, 0, i);
+        }
+
+        c = 'a';
+
+        for(int i = 0; i < 15; i++)
+        {
+            SquarePane sp = new SquarePane();
+            sp.updateSquare(new Square(), Character.toString(c).toUpperCase());
+            c++;
+            boardYLabelRight.add(sp, 0, i);
+        }
+
+        for(int i = 0; i < 15; i++)
+        {
+            SquarePane sp = new SquarePane();
+            sp.updateSquare(new Square(), Integer.toString(i+1));
+            boardXLabelTop.add(sp, i, 0);
+        }
+
+        for(int i = 0; i < 15; i++)
+        {
+            SquarePane sp = new SquarePane();
+            sp.updateSquare(new Square(), Integer.toString(i+1));
+            boardXLabelBottom.add(sp, i, 0);
         }
     }
 
@@ -332,12 +380,14 @@ public class ScrabbleEngineController
      * @uses Timer Uses timer to add a delay between turns. Adds a countdown on screen and switches the players after a set time
      * @author Evan Spendlove
      */
-    @FXML
     public void switchPlayerDelay()
     {
+        // Hide the current player's frame and show the prompt
         currentFrameController.getFramePanes().setVisible(false);
         switchPlayerPrompt.setVisible(true);
         incrementCurrentPlayerNum();
+
+        // Need to prompt the user to switch
 
         String username = getPlayer1().getUsername().toUpperCase();
 
@@ -350,8 +400,15 @@ public class ScrabbleEngineController
         Timer.run(this,1, switchPlayerPrompt, message);
     }
 
+    /**
+     * Method to update the username of a Player both in the Player object and on the board.
+     * @param player Pass the player number to be updated.
+     * @param username Pass the desired username to be set.
+     * @author Evan Spendlove
+     */
     public void updateUsername(int player, String username)
     {
+        // Update the username based on the argument
         switch(player)
         {
             case 1:
@@ -365,6 +422,10 @@ public class ScrabbleEngineController
         updateScore();
     }
 
+    /**
+     * Method to update the graphical representation of the score displayed on the game window.
+     * @author Evan Spendlove
+     */
     public void updateScore()
     {
         ScoreTextArea.clear();
@@ -618,30 +679,38 @@ public class ScrabbleEngineController
     // Public Getters and Private Setters
 
     /**
+     * Getter for current player number.
      * @return currentPlayerNum
      */
     public int getCurrentPlayerNum() {
         return currentPlayerNum;
     }
     /**
+     * Getter for current Frame
      * @return currentFrame
      */
     public Frame getCurrentFrame() {
         return currentFrame;
     }
+
     /**
+     * Setter for current Frame
      * @param currentFrame
      */
     private void setCurrentFrame(Frame currentFrame) {
         this.currentFrame = currentFrame;
     }
+
     /**
+     * Getter for board object
      * @return board
      */
     public Board getBoard() {
         return board;
     }
+
     /**
+     * Setter for board object.
      * @param board
      */
     private void setBoard(Board board) {
@@ -649,6 +718,7 @@ public class ScrabbleEngineController
     }
 
     /**
+     * Getter for Pool object.
      * @return pool
      */
     public Pool getPool() {
@@ -656,6 +726,7 @@ public class ScrabbleEngineController
     }
 
     /**
+     * Setter for Pool object.
      * @param pool
      */
     private void setPool(Pool pool) {
@@ -663,6 +734,7 @@ public class ScrabbleEngineController
     }
 
     /**
+     * Get player by their number (1 or 2).
      * @param playerNum
      * @return player
      */
@@ -675,6 +747,7 @@ public class ScrabbleEngineController
     }
 
     /**
+     * Getter for Player 1
      * @return player1
      */
     public Player getPlayer1() {
@@ -682,6 +755,7 @@ public class ScrabbleEngineController
     }
 
     /**
+     * Setter for Player 1
      * @param player1
      */
     private void setPlayer1(Player player1) {
@@ -689,6 +763,7 @@ public class ScrabbleEngineController
     }
 
     /**
+     * Getter for Player 1
      * @return player2
      */
     public Player getPlayer2() {
@@ -696,6 +771,7 @@ public class ScrabbleEngineController
     }
 
     /**
+     * Setter for Player 2
      * @param player2
      */
     private void setPlayer2(Player player2) {
@@ -726,6 +802,7 @@ public class ScrabbleEngineController
     }
 
     /**
+     * Getter for turn counter.
      * @return turnCounter
      */
     public int getTurnCounter() {

@@ -517,6 +517,11 @@ public class Board implements java.io.Serializable
         return hooks;
     }
 
+    /**
+     * Method to get the hook(s) for a given move.
+     * @param m Pass the move for which you want to find the hook.
+     * @return Placement Returns null if an error occurred, else returns the Placement of the hook(s) (coordinates and letter).
+     */
     private ArrayList<Placement> alternateHookCheck(Move m)
     {
         int firstRow = m.plays.get(0).getX();
@@ -535,9 +540,12 @@ public class Board implements java.io.Serializable
         {
             for (int j = boxLeft; j <= boxRight; j++)
             {
-                if (getBoard()[j][i].isOccupied() && !m.plays.contains(new Placement(i, j, getBoard()[j][i].getTile().character())))
+                if(!(i == boxTop && (j == boxLeft || j == boxRight)) && !(i == boxBottom && (j == boxLeft || j == boxRight)))
                 {
-                    hooks.add(new Placement(i, j, getBoard()[j][i].getTile().character()));
+                    if (getBoard()[j][i].isOccupied() && !m.plays.contains(new Placement(i, j, getBoard()[j][i].getTile().character())))
+                    {
+                        hooks.add(new Placement(i, j, getBoard()[j][i].getTile().character()));
+                    }
                 }
             }
         }

@@ -12,16 +12,6 @@ import scrabbleGame.gameModel.Placement;
 import java.util.ArrayList;
 import java.util.List;
 
-/*
-    This is the class for all the methods to do with the console.
-
-    You can implement the parseCommand() here - see testCommands() as a sample implementation
-
-    You can also implement the console menu here (text based display to user)
-    --> Would be helpful to have an 'outputError()' method if you'd like to have a go at it. @Reuben
- */
-
-
 /**
  * <h1>ConsoleController Class</h1>
  * <p>This is the Console Controller class, this will handle all of the input and output for the console menu of our scrabble game</br>
