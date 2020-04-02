@@ -1,25 +1,23 @@
 package scrabbleGame.UI.utilityPanes;
 
-import javafx.geometry.Insets;
 import javafx.scene.control.Label;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
-import javafx.scene.paint.Paint;
+import scrabbleGame.gameEngine.ScrabbleEngineController;
 import scrabbleGame.gameModel.Square;
 
+/**
+ * <h1>SquarePane Class</h1>
+ * This JavaFX class represented the squares on the board.
+ * <br> As such, it contains the square and can have a tile played on it. <br>
+ * Team: JunkBot </br>
+ * Members: Reuben Mulligan (18733589), Evan Spendlove (18492656), Cal Nolan(18355103)
+ * @author Evan Spendlove
+ * @version 1.0.0
+ * @since 26-03-2020
+ */
 public class SquarePane extends StackPane
 {
-    /*
-        Two things to display:
-        - Square type
-        - Tile
-
-        What types do we need:
-        - Square: >> Just need fill colour
-        - Tile >> Image, right?
-
-        - How do we make these responsive?
-     */
 
     Square square;
     TilePane tPane;
@@ -30,28 +28,95 @@ public class SquarePane extends StackPane
     StackPane sp = new StackPane();
 
     // Blank constructor
+
+    /**
+     * Empty Constructor
+     */
     public SquarePane(){}
 
+    /**
+     * Partial Constructor
+     * @param input Pass the Square to be set on this pane.
+     */
     public SquarePane(Square input)
     {
         updateSquare(input);
     }
 
+    /**
+     * Getter for Square
+     * @return Square Returns the square.
+     */
+    public Square getSquare() {
+        return square;
+    }
+
+    /**
+     * Getter for TilePane
+     * @return TilePane Returns the tilePane object
+     */
+    public TilePane getTilePane() {
+        return tPane;
+    }
+
+    /**
+     * Setter for the square which updates its graphical representation.
+     * @param newSquare Pass the square to be set.
+     */
     public void updateSquare(Square newSquare)
     {
+        this.square = null;
+        this.sp.getChildren().clear();
+        this.getChildren().clear();
+
         this.square = newSquare;
-        this.text.setText(newSquare.getType().toString());
-        this.text.setStyle("-fx-fill: white");
-        this.text.setStyle("-fx-font-size: 6");
 
-        //this.text.setStyle("-fx-background-color: magenta");
+        if(!ScrabbleEngineController.USING_THEMED_BOARD)
+        {
+            if(newSquare.getType() != Square.squareType.REGULAR)
+            {
+                this.text.setText(newSquare.getType().toString());
+                this.text.setStyle("-fx-font-size: 6");
+                this.text.setTextFill(Color.WHITE);
+            }
 
-        setSquareColour(newSquare);
+            setSquareColour(newSquare);
+        }
 
         this.getChildren().add(sp);
         this.getChildren().add(text);
     }
 
+    /**
+     * Setter for the square which updates its graphical representation.
+     * @param newSquare Pass the square to be set.
+     */
+    public void updateSquare(Square newSquare, String message)
+    {
+        this.square = null;
+        this.sp.getChildren().clear();
+        this.getChildren().clear();
+
+        this.square = newSquare;
+
+        if(!ScrabbleEngineController.USING_THEMED_BOARD)
+        {
+            this.text.setText(message);
+            this.text.setStyle("-fx-font-size: 10");
+            this.text.setTextFill(Color.LIMEGREEN);
+
+            setSquareColour(newSquare);
+        }
+
+        this.getChildren().add(sp);
+        this.getChildren().add(text);
+    }
+
+    /**
+     * Method for styling the square manually.
+     * @deprecated We now use a CSS stylesheet for all styling, but this may be used in the future for themes.
+     * @param newSquare Pass the new square to be styled.
+     */
     private void setSquareColour(Square newSquare)
     {
         /*
@@ -98,10 +163,15 @@ public class SquarePane extends StackPane
             //p = Color.rgb(246, 168, 155);
             squareClass = "starSquare";
         }
+        this.sp.getStyleClass().add("square");
         this.sp.getStyleClass().add(squareClass);
         //this.sp.setBackground(new Background(new BackgroundFill(p, new CornerRadii(0), new Insets(0))));
     }
 
+    /**
+     * Method for adding a tile (tilePane) onto a square.
+     * @param t Pass the tilePane to be added to the square.
+     */
     public void addTile(TilePane t)
     {
         tPane = t;
@@ -109,6 +179,10 @@ public class SquarePane extends StackPane
         sp.getChildren().add(t);
     }
 
+    /**
+     * Method for removing a tile from a square.
+     * @return TilePane Returns the removed TilePane from the square.
+     */
     public TilePane removeTile()
     {
         if(tPane.getTile() == null)
@@ -121,16 +195,35 @@ public class SquarePane extends StackPane
             this.getChildren().add(text);
 
             setSquareColour(square);
+            TilePane temp = tPane;
+            tPane = null;
 
-            return tPane;
+            return temp;
         }
     }
 
-    // Update method
+    /**
+     * Method for getting a string representation of the object.
+     * @return String Returns the string representation of the object.
+     */
     @Override
     public String toString()
     {
-        return "[" + this.square.toString() + ", " + this.text.getText() + "]";
+        if(this.square != null)
+        {
+            String tile = "";
+
+            if(this.tPane != null) // If there is a tile on the square
+            {
+                tile = tPane.getTile().toString();
+            }
+
+            return "[" + this.square.toString() + ", " + this.text.getText() + ", " + tile + "]";
+        }
+        else
+        {
+            return "[NULL]";
+        }
     }
 
 }

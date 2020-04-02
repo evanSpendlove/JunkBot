@@ -103,6 +103,23 @@ public class Frame implements java.io.Serializable
     }
 
     /**
+     * Method to exchange a blank tile for a different tile when it is being played.
+     * @param t Pass the tile which is to be exchanged.
+     */
+    public void exchangeBlank(Tile t)
+    {
+        if(this.containsTile(Tile.BLANK))
+        {
+            this.discardTile(Tile.BLANK);
+            this.addTile(t);
+        }
+        else
+        {
+            throw new IllegalStateException("This frame does not contain a blank tile to be exchanged.");
+        }
+    }
+
+    /**
      * Method used for checking if the rack contains a given tile.
      * @param letter Pass the tile that you want to check.
      * @return boolean Returns true if the rack contains the tile, else false.

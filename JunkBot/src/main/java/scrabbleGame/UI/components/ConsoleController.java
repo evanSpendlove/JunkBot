@@ -1,26 +1,16 @@
 package scrabbleGame.UI.components;
 
-import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.application.Platform;
 import scrabbleGame.gameEngine.ScrabbleEngineController;
 import scrabbleGame.gameModel.Move;
 import scrabbleGame.gameModel.Placement;
 
 import java.util.ArrayList;
 import java.util.List;
-
-/*
-    This is the class for all the methods to do with the console.
-
-    You can implement the parseCommand() here - see testCommands() as a sample implementation
-
-    You can also implement the console menu here (text based display to user)
-    --> Would be helpful to have an 'outputError()' method if you'd like to have a go at it. @Reuben
- */
-
 
 /**
  * <h1>ConsoleController Class</h1>
@@ -129,8 +119,7 @@ public class ConsoleController
         //Grab new command
         String newCommand = commandInput.getText();
 
-        // Need more input validation
-        if(!newCommand.isBlank() && !newCommand.isEmpty())
+        if(!newCommand.isEmpty())
         {
             //Update the lastCommand variable
             setLastCommand(newCommand);
@@ -159,7 +148,7 @@ public class ConsoleController
     @FXML
     public void addLineToConsole(String s)
     {
-        if(!s.isEmpty() && !s.isBlank())
+        if(!s.isEmpty())
         {
             s += "\n";
 
@@ -179,9 +168,7 @@ public class ConsoleController
      */
     private void parseInput(String input) throws IllegalArgumentException{
 
-        //Check for empty or blank string
-        if(input.isEmpty() || input.isBlank()){
-            //Throw an exception
+        if(input.isEmpty()){
             throw new IllegalArgumentException("Input cannot be empty");
         }
 
@@ -288,11 +275,13 @@ public class ConsoleController
                         getScrabbleEngineController().getPlayer1().setUsername(split[1]);
                         //Print a confirmation message
                         addLineToConsole("Username accepted");
+                        getScrabbleEngineController().updateUsername(1, split[1]);
                     }else{
                         //Update the player info accordingly
                         getScrabbleEngineController().getPlayer2().setUsername(split[1]);
                         //Print a confirmation message
                         addLineToConsole("Username accepted");
+                        getScrabbleEngineController().updateUsername(2, split[1]);
                     }
                 }else{
                     //Print out an error message
@@ -341,12 +330,16 @@ public class ConsoleController
 
                         //Update the frame controller with the word played (removing the tiles from the frame)
                         getScrabbleEngineController().currentFrameController.playWord(newMove);
+
+                        // Update the score
+                        getScrabbleEngineController().getPlayer(getScrabbleEngineController().getCurrentPlayerNum()).increaseScore(getScrabbleEngineController().scoring(newMove));
                     }else{
                         //Print a fail message
                         addLineToConsole("Failed to play a word");
                         break;
                     }
-                }else{
+                }
+                else{
                     //If not the first turn then call the placeWord method. Check returns 2 for valid move
                     if(getScrabbleEngineController().getBoard().placeWord(newMove, getScrabbleEngineController().getPlayer(getScrabbleEngineController().getCurrentPlayerNum())) == 2){
 
@@ -355,13 +348,18 @@ public class ConsoleController
 
                         //Update the board to display the played word
                         getScrabbleEngineController().boardController.updateBoard(getScrabbleEngineController().getBoard());
-                    }else{
+
+                        // Update the score
+                        getScrabbleEngineController().getPlayer(getScrabbleEngineController().getCurrentPlayerNum()).increaseScore(getScrabbleEngineController().scoring(newMove));
+                    }
+                    else{
                         //Print an error message
                         addLineToConsole("Failed to play a word");
                         break;
                     }
                 }
 
+                getScrabbleEngineController().updateScore();
                 //Switch the turn after move complete
                 getScrabbleEngineController().switchPlayerDelay();
                 break;
@@ -432,7 +430,7 @@ public class ConsoleController
      * @param direction
      * @return placements, a list of Placement objects
      */
-    List<Placement> createPlacement(String word, int[] gridRef, int direction){
+    public List<Placement> createPlacement(String word, int[] gridRef, int direction){
         //Initialise a List, character array (set equal to the input word.toCharArray()) and a letter pointer
         List<Placement> placements = new ArrayList<Placement>();
         char[] letters = word.toCharArray();

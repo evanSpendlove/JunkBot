@@ -54,6 +54,9 @@ public class FrameController
         this.scrabbleEngineController = scrabbleEngineController;
     }
 
+    /**
+     * Initialise method prepares the frameController for use by initialising objects inside it.
+     */
     @FXML
     void initialize()
     {
@@ -63,6 +66,10 @@ public class FrameController
 
     // Frame Methods
 
+    /**
+     * Method to update the frame object and the visual representation of the frame.
+     * @param f Pass the frame to be set.
+     */
     @FXML
     public void updateFrame(Frame f)
     {
@@ -70,7 +77,7 @@ public class FrameController
 
         this.frameObj = f;
 
-        // Need to update rack
+        // Need to update frame graphically
         for(int i = 0; i < frameObj.getTiles().size(); i++)
         {
             TilePane tp = new TilePane(frameObj.getTiles().get(i));
@@ -80,6 +87,11 @@ public class FrameController
         }
     }
 
+    /**
+     * Method to play a tile which updates the frame after the letter is played.
+     * @param offset Pass the offset (index in the frame object) of the Tile to be played.
+     * @return TilePane Returns the tilePane object that is to be played on the board.
+     */
     public TilePane playTile(int offset)
     {
         /*
@@ -88,7 +100,6 @@ public class FrameController
                 - Frame Panes
                 - Actual displayed frame
          */
-
         getFrameObj().playTile(getFrameObj().getTiles().get(offset));
         TilePane tile = getRack()[offset];
         getRack()[offset] = null;
@@ -97,6 +108,9 @@ public class FrameController
         return tile;
     }
 
+    /**
+     * Method to clear the frame and its graphical representation.
+     */
     @FXML
     public void clearFrame()
     {
@@ -107,6 +121,10 @@ public class FrameController
         rack = new TilePane[7];
     }
 
+    /**
+     * Method to refill the frame (and its graphical representation) using a pool.
+     * @param p Pass the pool from which the letters are drawn.
+     */
     @FXML
     public void refillFrame(Pool p)
     {
@@ -116,12 +134,12 @@ public class FrameController
 
     // Getters
 
-    @FXML
-    public TilePane getTileByCoords(int x)
-    {
-        return getRack()[x];
-    }
-
+    /**
+     * Method to exchange tiles for new tiles in the pool.
+     * @param toChange Pass the array of characters that you want to exchange.
+     * @return int Returns an errorcode (-1) if the exchange is unsuccessful.
+     * @throws IllegalArgumentException Throws an exception if the frame does not contain the tiles to be exchanged.
+     */
     @FXML
     public int exchangeTiles(char[] toChange) throws IllegalArgumentException{
         if(toChange.length < 1){
@@ -144,6 +162,10 @@ public class FrameController
         return 1;
     }
 
+    /**
+     * Method to ply a word and remove its letters from the frame.
+     * @param m Pass the move to be played.
+     */
     @FXML
     public void playWord(Move m)
     {

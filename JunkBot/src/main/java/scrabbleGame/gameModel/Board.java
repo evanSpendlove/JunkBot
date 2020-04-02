@@ -3,6 +3,8 @@ package scrabbleGame.gameModel;
 import java.io.*;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Scanner;
 
 /**
@@ -215,8 +217,6 @@ public class Board implements java.io.Serializable
             }
         }
 
-        System.out.println("ValidPosition: " + validPosition);
-
         return validPosition && inLine(m);
     }
 
@@ -294,28 +294,38 @@ public class Board implements java.io.Serializable
     {
         String word = m.getWord();
 
-        System.out.println("Word: " + word);
-
         for(int i = 0; i < m.getPlays().size(); i++)
         {
-            if(word.indexOf(m.getPlays().get(i).getLetter()) == -1) // If it's not in the move
+            if(word.indexOf(m.getPlays().get(i).getLetter()) == -1) // If it's not in the move (i.e. if it is a hook)
             {
-                word = word.substring(0, i) + word.substring(i + 1, word.length() -1);
-                System.out.println("Word: " + word);
+                word = word.substring(0, i) + word.substring(i + 1, word.length() -1); // Remove it from the word
             }
         }
 
+        ArrayList<Tile> temp = (ArrayList<Tile>) f.getTiles().clone(); // Clone the list of tiles
 
-        // FIX THIS - Don't need hook
         for(int x=0;x<m.plays.size();x++)
         {
-            //Checks whether each of the tiles in the word exist in the frame
-            if(!f.containsTile(m.plays.get(x).getLetter()))
+            int idx = temp.indexOf(Tile.getInstance(m.plays.get(x).getLetter()));
+
+            if(idx == -1)
             {
-                return false;
+                if(f.containsTile(Tile.BLANK))
+                {
+                    f.exchangeBlank(Tile.getInstance(m.plays.get(x).getLetter()));
+                    temp.remove(Tile.BLANK);
+                    m.addBlankLetter(m.plays.get(x).getLetter());
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            else {
+                temp.remove(idx);
             }
         }
-        System.out.println("Contains required letters");
+
         return true;
     }
 
@@ -327,7 +337,6 @@ public class Board implements java.io.Serializable
      */
     private boolean inLine(Move m)
     {
-        System.out.println("Got to inLine");
         if(m.getDirection() == 0) // Horizontal, so Y is constant
         {
             for(int i = 0; i < m.getPlays().size(); i++) // For each play
@@ -351,16 +360,10 @@ public class Board implements java.io.Serializable
 
         if(m.getPlays().size() == m.getWord().length())
         {
-            System.out.println("Word matches plays: " + m.getWord());
             return true;
         }
 
-        boolean isConn = isConnected(m);
-        boolean altCheck = alternateHookCheck(m);
-
-        System.out.println("isConnected: " + isConn + ", AltCheck: " + altCheck);
-
-        return isConn && altCheck;
+        return isConnected(m) && (alternateHookCheck(m) != null);
     }
 
     /**
@@ -377,7 +380,6 @@ public class Board implements java.io.Serializable
         // If hooked
         if(hook != null)
         {
-            System.out.println("Hook" + hook.toString());
             int targetValue = 0;
             int actualValue = 0;
             int hookOffset = 0;
@@ -406,7 +408,6 @@ public class Board implements java.io.Serializable
 
                     if(actualValue != targetValue)
                     {
-                        System.out.println("Actual Value: " + actualValue + ", TargetValue: " + targetValue);
                         return false;
                     }
                 }
@@ -415,20 +416,13 @@ public class Board implements java.io.Serializable
             {
                 for(int i = 0; i < m.getPlays().size(); i++)
                 {
-                    System.out.println("Character: " + m.getPlays().get(i).getLetter());
 
                     actualValue = m.getPlays().get(i).getY();
                     targetValue = m.getPlays().get(0).getY() + i;
 
-                    System.out.println("Actual value: " + actualValue);
-                    System.out.println("Target Value:" + targetValue);
-
-                    System.out.println("Current hook[hP] Y: " + hook.get(hookPointer).getY());
-
                     // First, check if we are looking at the hook
                     if(targetValue + hookOffset == hook.get(hookPointer).getY())
                     {
-                        System.out.println("Hook found: " + hook.get(hookPointer).getLetter());
                         hookOffset++; // Bypass this check
 
                         if(hookPointer + 1 < hook.size())
@@ -437,14 +431,10 @@ public class Board implements java.io.Serializable
                         }
                     }
 
-                    System.out.println("Hook pointer: " + hookPointer);
-                    System.out.println("Hook offset: " + hookOffset);
-
                     targetValue += hookOffset;
 
                     if(actualValue != targetValue)
                     {
-                        System.out.println("Actual Value: " + actualValue + ", TargetValue: " + targetValue);
                         return false;
                     }
                 }
@@ -527,7 +517,12 @@ public class Board implements java.io.Serializable
         return hooks;
     }
 
-    private boolean alternateHookCheck(Move m)
+    /**
+     * Method to get the hook(s) for a given move.
+     * @param m Pass the move for which you want to find the hook.
+     * @return Placement Returns null if an error occurred, else returns the Placement of the hook(s) (coordinates and letter).
+     */
+    private ArrayList<Placement> alternateHookCheck(Move m)
     {
         int firstRow = m.plays.get(0).getX();
         int lastRow = m.getPlays().get(m.getPlays().size() - 1).getX();
@@ -538,22 +533,31 @@ public class Board implements java.io.Serializable
         int boxBottom = Math.min(lastRow + 1, BOARD_DIMENSION - 1);
         int boxLeft = Math.max(firstColumn - 1,0);
         int boxRight = Math.min(lastColumn + 1, BOARD_DIMENSION - 1);
-        boolean connectionFound = false;
 
-        for (int i = boxTop; i <= boxBottom && !connectionFound; i++)
+        ArrayList<Placement> hooks = new ArrayList<>();
+
+        for (int i = boxTop; i <= boxBottom; i++)
         {
-            for (int j = boxLeft; j <= boxRight && !connectionFound; j++)
+            for (int j = boxLeft; j <= boxRight; j++)
             {
-                if (getBoard()[i][j].isOccupied())
+                if(!(i == boxTop && (j == boxLeft || j == boxRight)) && !(i == boxBottom && (j == boxLeft || j == boxRight)))
                 {
-                    connectionFound = true;
+                    if (getBoard()[j][i].isOccupied() && !m.plays.contains(new Placement(i, j, getBoard()[j][i].getTile().character())))
+                    {
+                        hooks.add(new Placement(i, j, getBoard()[j][i].getTile().character()));
+                    }
                 }
             }
         }
 
-        System.out.println("ConnectionFound: " + connectionFound);
+        if(hooks.size() == 0)
+        {
+            return null;
+        }
 
-        return connectionFound;
+        System.out.println("Hooks: " + Arrays.toString(hooks.toArray()));
+
+        return hooks;
     }
 
     /**
@@ -592,7 +596,6 @@ public class Board implements java.io.Serializable
         {
             Placement q = m.plays.get(x);
             board[q.getY()][q.getX()].setTile(Tile.getInstance(q.getLetter()));
-            board[q.getY()][q.getX()].setType(Square.squareType.REGULAR);
         }
 
         wordsPlayed.add(m.getWord());
@@ -665,8 +668,6 @@ public class Board implements java.io.Serializable
 
         File file = null;
         URL res = getClass().getClassLoader().getResource(fileName);
-
-        System.out.println(res);
 
         try {
                 InputStream input = getClass().getClassLoader().getResourceAsStream(fileName);

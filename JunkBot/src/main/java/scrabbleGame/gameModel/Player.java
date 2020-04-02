@@ -120,7 +120,7 @@ public class Player implements java.io.Serializable {
 
         username = username.trim();
 
-        if(!username.isBlank() && !username.isEmpty()) // Check if blank or filled with spaces
+        if(!username.isEmpty()) // Check if blank or filled with spaces
         {
             this.username = username; // Set the username
         }
@@ -134,9 +134,8 @@ public class Player implements java.io.Serializable {
      * Setter for the private score field with error checking.
      * @param score Pass the score (in int format) that you want to set.
      */
-    public void setScore(int score) {
-        // TODO: Review possibility of negative score (all pass, and - the tiles on your rack = negative score) ?
-
+    public void setScore(int score)
+    {
         if(score >= 0) // Check the score is greater than or equal to 0
         {
             this.score = score; // If so, set it
@@ -145,6 +144,19 @@ public class Player implements java.io.Serializable {
         {
             throw new IllegalArgumentException("Score cannot be set to a negative value."); // Throw an exception
         }
+    }
+
+    /**
+     * Method to increase the Player's score by a certain amount.
+     * @param addition Pass the amount you want to add to the Player's current score.
+     */
+    public void increaseScore(int addition)
+    {
+        int currentScore = getScore();
+
+        currentScore += addition;
+
+        setScore(currentScore);
     }
 
     /**

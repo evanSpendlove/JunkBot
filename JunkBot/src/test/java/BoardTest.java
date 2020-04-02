@@ -188,7 +188,6 @@ public class BoardTest
 
         assertEquals("Q", test.getWordsPlayed().get(0));
         assertEquals('Q', test.getBoard()[7][7].getTile().character());
-        assertEquals(Square.squareType.REGULAR, test.getBoard()[7][7].getType());
     }
 
     @Test
@@ -418,5 +417,27 @@ public class BoardTest
         assertEquals(-1, test.placeFirstWord(new Move(y, "QUE", 0), one));
     }
 
+
+    @Test
+    public void testDuplicateLettersInFrame()
+    {
+        Board test = new Board();
+        ArrayList<Tile> x = new ArrayList<>();
+        for(int ew=0;ew<5;ew++)
+            x.add(Tile.getInstance('Q'));
+        x.add(Tile.getInstance('U'));
+        x.add(Tile.getInstance('E'));
+        Frame q = new Frame(x);
+        Player one = new Player("ree", 0, q);
+
+        Placement t = new Placement(7, 7, 'Q');
+        Placement t1 = new Placement(8, 7, 'Q');
+        Placement t2 = new Placement(9, 7, 'e');
+        List<Placement> y= new ArrayList<>();
+        y.add(t);
+        y.add(t1);
+        y.add(t2);
+        assertEquals(2, test.placeFirstWord(new Move(y, "QQE", 0), one));
+    }
 }
 
