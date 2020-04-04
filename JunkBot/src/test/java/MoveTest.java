@@ -1,9 +1,8 @@
-package java;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import scrabbleGame.Placement;
-import scrabbleGame.Move;
+import scrabbleGame.gameModel.Placement;
+import scrabbleGame.gameModel.Move;
 
 import java.util.ArrayList;
 

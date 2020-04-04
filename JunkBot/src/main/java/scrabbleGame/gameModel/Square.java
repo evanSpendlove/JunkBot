@@ -112,6 +112,23 @@ public class Square implements java.io.Serializable
     }
 
     /**
+     * Clears the tile from the square.
+     * @throws IllegalStateException Cannot remove a tile from a square without a tile.
+     */
+    public void clearTile() throws IllegalStateException
+    {
+        if(!isOccupied())
+        {
+            throw new IllegalStateException("Cannot clear a tile from a square that is not occupied.");
+        }
+        else
+        {
+            this.tile = null;
+            setOccupied(false);
+        }
+    }
+
+    /**
      * Constructor for the Square object.
      * The occupied field is false by default, and it is a regular square (no multiplier, not a star) by default.
      */

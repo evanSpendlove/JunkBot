@@ -112,6 +112,8 @@ public class BoardController
     public TilePane removeTileFromBoard(int x, int y) throws TileNotFound {
         TilePane tp = getBoard()[y][x].removeTile();
 
+        boardObject.getBoard()[y][x].setTile(null);
+
         if(tp != null)
         {
             return tp;
