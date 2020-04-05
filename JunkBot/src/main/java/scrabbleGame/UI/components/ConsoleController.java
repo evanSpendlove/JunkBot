@@ -4,7 +4,6 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
-import javafx.application.Platform;
 import scrabbleGame.gameEngine.ScrabbleEngineController;
 import scrabbleGame.gameModel.Move;
 import scrabbleGame.gameModel.Placement;
@@ -24,14 +23,11 @@ import java.util.List;
  */
 public class ConsoleController
 {
-
-
     /**
      * Holds the main scrabble engine controller
      */
     @FXML
     private ScrabbleEngineController scrabbleEngineController;
-
 
     /**
      * Text Area variable to hold the console Display
@@ -49,6 +45,16 @@ public class ConsoleController
      * String variable holding the last command inputted into the terminal
      */
     private String lastCommand;
+
+    /**
+     * ArrayList of the last words played.
+     */
+    private ArrayList<String> lastWordsPlayed = new ArrayList<>();
+
+    /**
+     * Integer variable holding the score of the last word
+     */
+    private int lastMoveScore;
 
     /**
      * Game started boolean flag
@@ -103,9 +109,7 @@ public class ConsoleController
      */
     @FXML
     void initialise()
-    {
-        // Blank for now
-    }
+    {}
 
     /**
      * submitCommand Method acts on the actionEvent from the text field box. It then grabs the input command, does some validation then hands it to parseInput
@@ -166,7 +170,8 @@ public class ConsoleController
      * @param input The command string to be parsed
      * @throws IllegalArgumentException
      */
-    private void parseInput(String input) throws IllegalArgumentException{
+    private void parseInput(String input) throws IllegalArgumentException
+    {
 
         if(input.isEmpty()){
             throw new IllegalArgumentException("Input cannot be empty");
@@ -207,7 +212,27 @@ public class ConsoleController
             //Case 0, Quit command
             case 0:
                 //Use platform.exit to close the window
-                Platform.exit();
+                int player1Score = getScrabbleEngineController().getPlayer1().getScore() - getScrabbleEngineController().finalScore(getScrabbleEngineController().getPlayer1().getFrame());
+                int player2Score = getScrabbleEngineController().getPlayer2().getScore() - getScrabbleEngineController().finalScore(getScrabbleEngineController().getPlayer2().getFrame());
+
+                String message = "";
+
+                if(player1Score > player2Score)
+                {
+                    message = "PLAYER ONE HAS WON!";
+                }
+                else if(player2Score > player1Score)
+                {
+                    message = "PLAYER TWO HAS WON!";
+                }
+                else
+                {
+                    message = "IT'S A TIE!";
+                }
+
+                message += "\n\n\n";
+
+                Timer.endGame(getScrabbleEngineController(), 3, getScrabbleEngineController().switchPlayerPrompt, message);
                 break;
 
             //Case 1, print the help message
@@ -243,7 +268,9 @@ public class ConsoleController
 
                     //End the players turn by calling the switchPlayerDelay method
                     getScrabbleEngineController().switchPlayerDelay();
-                }catch(Exception ex){
+                }
+                catch(Exception ex){
+                    ex.printStackTrace();
                     //If an exception is caught, add the exception message to the console
                     addLineToConsole(ex.getMessage());
                 }
@@ -255,7 +282,8 @@ public class ConsoleController
                 //If started do nothing
                 if(gameStarted){
                     addLineToConsole("Game already in progress");
-                }else{
+                }
+                else{
                     //Update the boolean flag
                     gameStarted = true;
                     //Print a game starting message
@@ -324,6 +352,8 @@ public class ConsoleController
                     //If its the first turn, call the placeFirstWord method from Board, check it return 2 for success
                     if(getScrabbleEngineController().getBoard().placeFirstWord(newMove, getScrabbleEngineController().getPlayer(getScrabbleEngineController().getCurrentPlayerNum())) == 2){
                         //getScrabbleEngineController().boardController.addMoveToBoard(getScrabbleEngineController().currentFrameController, newMove);
+                        lastWordsPlayed.clear();
+                        updateLastWordsPlayed(newMove.getWord());
 
                         //Update the board object after the word is placed to display the new word
                         getScrabbleEngineController().boardController.updateBoard(getScrabbleEngineController().getBoard());
@@ -333,7 +363,8 @@ public class ConsoleController
 
                         // Update the score
                         getScrabbleEngineController().getPlayer(getScrabbleEngineController().getCurrentPlayerNum()).increaseScore(getScrabbleEngineController().scoring(newMove));
-                    }else{
+                    }
+                    else{
                         //Print a fail message
                         addLineToConsole("Failed to play a word");
                         break;
@@ -342,6 +373,9 @@ public class ConsoleController
                 else{
                     //If not the first turn then call the placeWord method. Check returns 2 for valid move
                     if(getScrabbleEngineController().getBoard().placeWord(newMove, getScrabbleEngineController().getPlayer(getScrabbleEngineController().getCurrentPlayerNum())) == 2){
+
+                        lastWordsPlayed.clear();
+                        updateLastWordsPlayed(newMove.getWord());
 
                         //Update the frame with played word, removing the tiles
                         getScrabbleEngineController().currentFrameController.playWord(newMove);
@@ -352,7 +386,7 @@ public class ConsoleController
                         // Update the score
                         getScrabbleEngineController().getPlayer(getScrabbleEngineController().getCurrentPlayerNum()).increaseScore(getScrabbleEngineController().scoring(newMove));
                     }
-                    else{
+                    else {
                         //Print an error message
                         addLineToConsole("Failed to play a word");
                         break;
@@ -366,29 +400,6 @@ public class ConsoleController
 
         }
     }
-
-    private void testCommands(String command)
-    {
-        if(command.charAt(0) == '1') // If command to add tile
-        {
-            System.out.println("Substring (2)" + command.substring(2,3));
-            int offset = Integer.parseInt(command.substring(2, 3));
-            int x = Integer.parseInt(command.substring(4, 5));
-            int y = Integer.parseInt(command.substring(6, 7));
-
-            System.out.println("Command: " + command);
-            System.out.println("Offset: " + offset);
-            System.out.println("X: " + x);
-            System.out.println("Y: " + y);
-
-            getScrabbleEngineController().boardController.addTiletoBoard(this.scrabbleEngineController.currentFrameController, offset, x, y);
-        }
-        else if(command.charAt(0) == '5')
-        {
-            getScrabbleEngineController().switchPlayerDelay();
-        }
-    }
-
 
     /**
      * Method convertGridRef takes in a grid reference in the format: [A-Oa-o][1-15] and converts it
@@ -466,5 +477,37 @@ public class ConsoleController
         }
         //Return the placements variable
         return placements;
+    }
+
+    // TODO: Comment pls
+    public void updateLastWordsPlayed(String word)
+    {
+        if(!word.isEmpty())
+        {
+            this.lastWordsPlayed.add(word);
+        }
+        else
+        {
+            throw new IllegalArgumentException("A word played cannot be blank.");
+        }
+    }
+
+    // TODO: Comment pls
+    public void setLastMoveScore(int score)
+    {
+        if(score  > 0)
+        {
+            this.lastMoveScore = score;
+        }
+        else
+        {
+            throw new IllegalArgumentException("Score of the last move cannot be 0.");
+        }
+    }
+
+    // TODO: Comment pls
+    public ArrayList<String> getLastWordsPlayed()
+    {
+        return lastWordsPlayed;
     }
 }

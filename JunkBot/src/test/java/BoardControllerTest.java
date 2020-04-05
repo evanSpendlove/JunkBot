@@ -137,12 +137,10 @@ public class BoardControllerTest
     }
 
     @Test
-    void testAddTileToSquare(FxRobot robot)
+    void testAddTileToSquareCommand(FxRobot robot)
     {
-        // when:
         robot.clickOn(".text-field");
         robot.write("Start\n");
-        TextArea cd = (TextArea) robot.lookup("#consoleDisplay").query();
         robot.clickOn(".text-field");
 
         ScrabbleEngineController sec = loader.getController();

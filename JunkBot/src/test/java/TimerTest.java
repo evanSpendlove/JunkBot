@@ -1,3 +1,4 @@
+import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -79,8 +80,31 @@ public class TimerTest
             int time = 3;
             String message = "Test: ";
             Timer.run(sec, time, sec.switchPlayerPrompt, message);
+
             TextArea prompt = (TextArea) robot.lookup("#switchPlayerPrompt").query();
             assertEquals((message + time + "s"), prompt.getText());
+        }
+        catch(Exception ex)
+        {
+            ex.printStackTrace();
+        }
+    }
+
+    @Test
+    public void testEndGame(FxRobot robot)
+    {
+        try
+        {
+            ScrabbleEngineController sec = loader.getController();
+            int time = 1;
+            String message = "END GAME: ";
+
+            Timer.endGame(sec, time, sec.switchPlayerPrompt, message);
+
+            TextArea prompt = (TextArea) robot.lookup("#switchPlayerPrompt").query();
+            String text = prompt.getText();
+
+            assertEquals((message + time + "s"), text);
         }
         catch(Exception ex)
         {

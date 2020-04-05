@@ -148,56 +148,5 @@ public class BoardController
         }
     }
 
-    /**
-     * Method for adding a move to the board and updating the board graphically.
-     * @param fc Pass the frameController associated with the move.
-     * @param m Pass the move to be played.
-     */
-    @FXML
-    public void addMoveToBoard(FrameController fc, Move m)
-    {
-        // Add each letter to the board
-
-        for(int i = 0; i < m.getPlays().size(); i++) // For each play
-        {
-            int x = m.getPlays().get(i).getX();
-            int y = m.getPlays().get(i).getY();
-            int offset = fc.getFrameObj().getTiles().indexOf(Tile.getInstance(m.getPlays().get(i).getLetter()));
-
-            System.out.println(fc.getFrameObj().getTiles().toString());
-
-            System.out.println("X: " + x + ", Y: " + y + ", Offset: " + offset + ", Character: " +  m.getPlays().get(i).getLetter());
-
-            addTiletoBoard(fc, offset, x, y);
-        }
-    }
-
-    /**
-     * Method for adding a tile to the board.
-     * @param fc Pass the frameController from which the tile is to be played.
-     * @param offset Pass the index of the tile on the frame.
-     * @param x Pass the x coordinate of the placement.
-     * @param y Pass the y coordinate of the placement.
-     */
-    @FXML
-    public void addTiletoBoard(FrameController fc, int offset, int x, int y)
-    {
-        System.out.println("Offset: " + offset + ", Tile: " + fc.getFrameObj().getTiles().get(offset));
-
-        getBoardObject().getBoard()[y][x].setTile(fc.getRack()[offset].getTile()); // Add to board object
-        getBoard()[y][x].addTile(fc.getRack()[offset]);
-
-        // System.out.println("FC_RackPanes: " + Arrays.toString(fc.getFramePanes().getChildren().toArray()));
-        fc.getFramePanes().getChildren().remove(fc.getRack()[offset]);
-
-        // System.out.println("FC_Rack: " + Arrays.toString(fc.getRack()));
-        // System.out.println("FC_RackPanes: " + Arrays.toString(fc.getFramePanes().getChildren().toArray()));
-
-        fc.getFrameObj().playTile(fc.getRack()[offset].getTile());
-        fc.getRack()[offset] = null; // Remove from rack
-
-        // System.out.println("FC_Rack: " + Arrays.toString(fc.getRack()));
-    }
-
 }
 

@@ -477,4 +477,116 @@ public class MoveTest
             fail("No exception should be thrown when toString() is called on an instance of Move.");
         }
     }
+
+    /*
+        Goal: To test that the includesBlank() method works as expected.
+        Testing Method: Test when expecting both true and false and check the return values.
+     */
+    @Test
+    public void testIncludesBlank()
+    {
+        try
+        {
+            ArrayList<Placement> ply;
+            Move m;
+
+            ply = new ArrayList<>();
+
+            Placement p1 = new Placement(8, 6, 'D');
+            Placement p2 = new Placement(8, 8, 'E');
+
+            ply.add(p1);
+            ply.add(p2);
+
+            m = new Move(ply, "DUE", 1);
+
+            assertFalse(m.includesBlank());
+
+            m.addBlankLetter('S');
+
+            assertTrue(m.includesBlank());
+        }
+        catch(Exception ex)
+        {
+            fail("No exception should be thrown when checking if the move contains a blank letter.");
+        }
+    }
+
+    /*
+        Goal: To test that the addBlank() method correctly adds a blank.
+        Testing Method: Test adding multiple blanks and check the Move is updated correctly.
+     */
+    @Test
+    public void testAddBlank()
+    {
+        try
+        {
+            ArrayList<Placement> ply;
+            Move m;
+
+            ply = new ArrayList<>();
+
+            Placement p1 = new Placement(8, 6, 'D');
+            Placement p2 = new Placement(8, 8, 'E');
+
+            ply.add(p1);
+            ply.add(p2);
+
+            m = new Move(ply, "DUE", 1);
+
+            assertFalse(m.includesBlank());
+
+            m.addBlankLetter('S');
+
+            assertTrue(m.includesBlank());
+
+            m.addBlankLetter('E');
+
+            assertTrue(m.includesBlank());
+        }
+        catch(Exception ex)
+        {
+            fail("No exception should be thrown when adding a blank letter.");
+        }
+    }
+
+    /*
+        Goal: To test that the getter for the blank letters works as expected.
+        Testing Method: Test the getter when there are no blanks and when there have been some added.
+     */
+    @Test
+    public void testGetBlankLetters()
+    {
+        try
+        {
+            ArrayList<Placement> ply;
+            Move m;
+
+            ply = new ArrayList<>();
+
+            Placement p1 = new Placement(8, 6, 'D');
+            Placement p2 = new Placement(8, 8, 'E');
+
+            ply.add(p1);
+            ply.add(p2);
+
+            m = new Move(ply, "DUE", 1);
+
+            assertEquals(0, m.getBlankLetter().size());
+
+            ArrayList<Character> blanks = new ArrayList<>();
+
+            m.addBlankLetter('S');
+            m.addBlankLetter('E');
+
+            blanks.add('S');
+            blanks.add('E');
+
+            assertEquals(blanks, m.getBlankLetter());
+        }
+        catch(Exception ex)
+        {
+            fail("No exception should be thrown when getting the blank letters from a move.");
+        }
+    }
 }

@@ -442,10 +442,11 @@ public class ScrabbleEngineController
         ArrayList<Placement> AdditionalWord = new ArrayList<>();
         int scores=0;
         String word="";
-        Boolean flag = false;
 
-        if(m.getDirection() == 0){
-            for(int i = 0; i < m.getPlays().size(); i++){
+        if(m.getDirection() == 0)
+        {
+            for(int i = 0; i < m.getPlays().size(); i++)
+            {
                 int newWordSize = 0;
                 int xCoord = m.getPlays().get(i).getX();
                 int yCoordUp = m.getPlays().get(i).getY()-1;
@@ -463,7 +464,12 @@ public class ScrabbleEngineController
                     yCoordDown++;
                     sq = getBoard().getBoard()[yCoordDown][xCoord];
                 }
-                if(AdditionalWord.size() != 1){
+
+                if(AdditionalWord.size() != 1)
+                {
+                    addWordToLastWordsPlayed(AdditionalWord);
+                    System.out.println("Additional Word: " + AdditionalWord);
+
                     for(int j = 0; j<AdditionalWord.size(); j++){
                         int newY = AdditionalWord.get(j).getY();
                         int newX = AdditionalWord.get(j).getX();
@@ -473,7 +479,8 @@ public class ScrabbleEngineController
 
                 AdditionalWord.clear();
             }
-        }else {
+        }
+        else {
             for(int i = 0; i < m.getPlays().size(); i++){
                 System.out.println(m.getPlays().toString());
                 int xCoordLeft = m.getPlays().get(i).getX() - 1;
@@ -492,7 +499,13 @@ public class ScrabbleEngineController
                     xCoordRight++;
                     sq = getBoard().getBoard()[yCoord][xCoordRight];
                 }
-                if(AdditionalWord.size() != 1){
+
+                if(AdditionalWord.size() != 1)
+                {
+
+                    addWordToLastWordsPlayed(AdditionalWord);
+                    // System.out.println("Additional Word: " + AdditionalWord);
+
                     for(int j = 0; j<AdditionalWord.size(); j++){
                         int newY = AdditionalWord.get(j).getY();
                         int newX = AdditionalWord.get(j).getX();
@@ -508,13 +521,14 @@ public class ScrabbleEngineController
 
     /**
      * Method to call other scoring methods
-     * @param m
+     * @param m Pass the move to be scored
      * @return total score of played move
      */
     public int scoring(Move m)
     {
-        System.out.println(m.toString());
+        // System.out.println(m.toString());
         Move original = m;
+
         if(m.isBingo())
         {
             int finalScore = findAdditionalWords(m);
@@ -524,9 +538,15 @@ public class ScrabbleEngineController
         }
 
         int check = findAdditionalWords(m);
-        System.out.println("Check = " + check);
-        System.out.println(original.toString() + m.toString());
+        //System.out.println("Check = " + check);
+        //System.out.println(original.toString() + m.toString());
         check += calculateScoring(original);
+
+        consoleController.setLastMoveScore(check);
+
+        System.out.println("Last words played: " + consoleController.getLastWordsPlayed());
+        System.out.println("Score of last move: " + check);
+
         return check;
     }
 
@@ -547,14 +567,14 @@ public class ScrabbleEngineController
         int y = tile.getY();
         Square sq = this.board.getBoard()[y][x];
         checkSurroundingSquares(m);
-        System.out.println(m.toString());
+        //System.out.println(m.toString());
 
         while (flag)
         {
             letter = sq.getTile().value();//for each letter in the word, get it's value, and any special tiles
 
-            System.out.println("Square type: " + sq.getType());
-            System.out.println("Square - X: " + x  + ", Y: " + y + ", Letter: " + letter);
+            //System.out.println("Square type: " + sq.getType());
+            //System.out.println("Square - X: " + x  + ", Y: " + y + ", Letter: " + letter);
 
             switch (sq.getType()) {//Apply letter multipliers to 'letter', and word multipliers to 'multi'
                 case DB_LETTER:
@@ -573,7 +593,7 @@ public class ScrabbleEngineController
                     multi = 3;
                     break;
             }
-            System.out.println(", New Letter: " + letter);
+            //System.out.println(", New Letter: " + letter);
             score += letter;//add the value of each tile to total word score
             sq.setType(Square.squareType.REGULAR);//Set type of each square to Regular
             if(playPtr < m.getPlays().size()-1){
@@ -587,10 +607,11 @@ public class ScrabbleEngineController
             sq = getBoard().getBoard()[y][x];//check the next square on the board
         }
 
-        System.out.println("Word multiplier: " + multi + ", letter multiplier: " + letter + ", Score: " + score);
+        //System.out.println("Word multiplier: " + multi + ", letter multiplier: " + letter + ", Score: " + score);
 
         score *= multi;
-        System.out.println(", New Score = " + score);
+        //System.out.println(", New Score = " + score);
+
         return score;//multiply the total score by the any word multipliers
     }
 
@@ -678,6 +699,21 @@ public class ScrabbleEngineController
         return total;
     }
 
+    /**
+     * Method to add a word to the lastWordsPlayed ArrayList when a move is complete.
+     * @param plays Pass the ArrayList of placements that make up the word
+     */
+    private void addWordToLastWordsPlayed(ArrayList<Placement> plays)
+    {
+        String word = "";
+
+        for(int i = 0; i < plays.size(); i++)
+        {
+            word += plays.get(i).getLetter();
+        }
+
+        consoleController.updateLastWordsPlayed(word);
+    }
 
     // Public Getters and Private Setters
 

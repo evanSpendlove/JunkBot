@@ -145,6 +145,8 @@ public class SquarePaneTest {
             Square s = new Square();
             SquarePane sp = new SquarePane(s);
 
+            assertNull(sp.removeTile()); // No tile added yet so returns null
+
             Tile t = Tile.T;
             TilePane tileSet = new TilePane(t);
 
@@ -178,6 +180,9 @@ public class SquarePaneTest {
 
             SquarePane s2 = new SquarePane(s);
             assertEquals("[S, STAR, ]", s2.toString());
+
+            s2.addTile(new TilePane(Tile.T));
+            assertEquals("[S, STAR, T]", s2.toString());
         }
         catch(Exception ex)
         {

@@ -185,7 +185,7 @@ public class SquarePane extends StackPane
      */
     public TilePane removeTile()
     {
-        if(tPane.getTile() == null)
+        if(tPane == null)
         {
             return null;
         }

@@ -2,6 +2,7 @@ package scrabbleGame.UI.components;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.scene.control.TextArea;
 import javafx.util.Duration;
@@ -51,6 +52,32 @@ public class Timer
             displayArea.setText("");
             engine.currentFrameController.getFramePanes().setVisible(true);
             engine.switchPlayer();
+        });
+
+        // Play
+        stopWatchTimeline.setCycleCount(time);
+        stopWatchTimeline.play();
+    }
+
+    public static void endGame(ScrabbleEngineController engine, int time, TextArea displayArea, String message)
+    {
+        seconds = time;
+        displayArea.setVisible(true);
+        displayArea.setText(message + Integer.toString(seconds) + "s");
+
+        // Create new timeline for displaying the wait message
+        Timeline stopWatchTimeline = new Timeline(new KeyFrame(Duration.seconds(1), (ActionEvent event) -> {
+            seconds--;
+            displayArea.setText(message + Integer.toString(seconds) + "s");
+        }));
+
+        // When the event is over, hide the screen and update the frame.
+        stopWatchTimeline.setOnFinished(actionEvent ->
+        {
+            displayArea.setVisible(false);
+            displayArea.setText("");
+            Platform.exit();
+            System.exit(0);
         });
 
         // Play

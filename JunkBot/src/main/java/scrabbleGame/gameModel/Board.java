@@ -4,7 +4,6 @@ import java.io.*;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Scanner;
 
 /**
@@ -207,10 +206,6 @@ public class Board implements java.io.Serializable
         {
             Placement play = m.getPlays().get(i); // Get the play
 
-            if(play.getX() > 14 || play.getY() > 14 || play.getX() < 0 || play.getY() < 0) // Check the coordinates are on the board
-            {
-                validPosition = false; //
-            }
             if(board[play.getY()][play.getX()].isOccupied()) // Check the chosen tile is not currently occupied
             {
                 validPosition = false;
@@ -255,7 +250,10 @@ public class Board implements java.io.Serializable
         boolean containsStar = false;
         Placement q;
 
-        if(!wordsPlayed.isEmpty())  { return false; }
+        if(!wordsPlayed.isEmpty())
+        {
+            return false;
+        }
 
         for(int x = 0; x < m.plays.size() && containsStar == false; x++) // For each play
         {
@@ -292,13 +290,115 @@ public class Board implements java.io.Serializable
      */
     private boolean containsRequiredLetters(Move m, Frame f)
     {
+        boolean containsAllLetters = true;
+
         String word = m.getWord();
+        String wordToPlace = "";
+
+        // word = word.substring(0, i) + word.substring(i + 1, word.length() -1); // Remove it from the word
 
         for(int i = 0; i < m.getPlays().size(); i++)
         {
-            if(word.indexOf(m.getPlays().get(i).getLetter()) == -1) // If it's not in the move (i.e. if it is a hook)
+            wordToPlace += m.getPlays().get(i).getLetter();
+        }
+
+        int offset = 0;
+
+        for(int i = 0; i + offset < word.length() && i < wordToPlace.length(); i++)
+        {
+            if(word.charAt(i + offset) != wordToPlace.charAt(i))
             {
-                word = word.substring(0, i) + word.substring(i + 1, word.length() -1); // Remove it from the word
+                if(i == 0)
+                {
+                    // At beginning of word
+                    int x = m.getPlays().get(0).getX();
+                    int y = m.getPlays().get(0).getY();
+
+                    if(m.getDirection() == 0)
+                    {
+                        x--;
+                    }
+                    else
+                    {
+                        y--;
+                    }
+
+                    if(board[y][x].getTile() != null)
+                    {
+                        if(board[y][x].getTile().character() != word.charAt(i + offset))
+                        {
+                            containsAllLetters = false;
+                        }
+                        else
+                        {
+                            offset++; // Increment offset
+                        }
+                    }
+                    else
+                    {
+                        containsAllLetters = false;
+                    }
+                }
+                else if(i == word.length() - 1)
+                {
+                    int x = m.getPlays().get(m.getPlays().size() - 1).getX();
+                    int y = m.getPlays().get(m.getPlays().size() - 1).getY();
+
+                    if(m.getDirection() == 0)
+                    {
+                        x++;
+                    }
+                    else
+                    {
+                        y++;
+                    }
+
+                    if(board[y][x].getTile() != null)
+                    {
+                        if(board[y][x].getTile().character() != word.charAt(i + offset))
+                        {
+                            containsAllLetters = false;
+                        }
+                        else
+                        {
+                            offset++; // Increment offset
+                        }
+                    }
+                    else
+                    {
+                        containsAllLetters = false;
+                    }
+                }
+                else
+                {
+                    int x = m.getPlays().get(i-1).getX();
+                    int y = m.getPlays().get(i-1).getY();
+
+                    if(m.getDirection() == 0)
+                    {
+                        x++;
+                    }
+                    else
+                    {
+                        y++;
+                    }
+
+                    if(board[y][x].getTile() != null)
+                    {
+                        if(board[y][x].getTile().character() != word.charAt(i + offset))
+                        {
+                            containsAllLetters = false;
+                        }
+                        else
+                        {
+                            offset++; // Increment offset
+                        }
+                    }
+                    else
+                    {
+                        containsAllLetters = false;
+                    }
+                }
             }
         }
 
@@ -318,7 +418,7 @@ public class Board implements java.io.Serializable
                 }
                 else
                 {
-                    return false;
+                    containsAllLetters = false;
                 }
             }
             else {
@@ -326,7 +426,7 @@ public class Board implements java.io.Serializable
             }
         }
 
-        return true;
+        return containsAllLetters;
     }
 
     /**
@@ -555,7 +655,7 @@ public class Board implements java.io.Serializable
             return null;
         }
 
-        System.out.println("Hooks: " + Arrays.toString(hooks.toArray()));
+        //System.out.println("Hooks: " + Arrays.toString(hooks.toArray()));
 
         return hooks;
     }
@@ -588,7 +688,6 @@ public class Board implements java.io.Serializable
      * @author Cal Nolan
      */
     private void addWordToBoard(Move m, Player p){
-        calculateScore(m);
 
         // Set each tile played on the relevant square, and set each tile to REGULAR type
 
@@ -599,13 +698,6 @@ public class Board implements java.io.Serializable
         }
 
         wordsPlayed.add(m.getWord());
-    }
-
-    // Calculate score
-    // TODO: Complete method
-    private int calculateScore(Move m)
-    {
-        return 0;
     }
 
     // Display board (ASCII)

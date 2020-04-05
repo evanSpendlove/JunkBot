@@ -72,14 +72,7 @@ public class Frame implements java.io.Serializable
      */
     private void addTile(Tile letter)
     {
-        if(this.tiles.size() < 7)
-        {
-            this.tiles.add(letter); // Add the letter
-        }
-        else
-        {
-            throw new IllegalStateException("Frame cannot hold more than 7 tiles.");
-        }
+        this.tiles.add(letter); // Add the letter
     }
 
     /**

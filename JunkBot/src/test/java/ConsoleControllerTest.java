@@ -13,16 +13,18 @@ import org.testfx.framework.junit5.ApplicationExtension;
 import org.testfx.framework.junit5.Start;
 import scrabbleGame.gameEngine.ScrabbleEngineController;
 import scrabbleGame.gameEngine.UI;
+import scrabbleGame.gameModel.Frame;
 import scrabbleGame.gameModel.Placement;
+import scrabbleGame.gameModel.Tile;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(ApplicationExtension.class)
-class ConsoleControllerTest {
-
+class ConsoleControllerTest
+{
     private TextField input;
     Parent root;
     FXMLLoader loader;
@@ -90,4 +92,79 @@ class ConsoleControllerTest {
         test2 = sec.consoleController.createPlacement("a",gridRef, 0);
         assertEquals(test.toString(), test2.toString());
     }
+
+    @Test
+    void testGetLastCommand(FxRobot robot)
+    {
+        robot.clickOn(".text-field");
+        robot.write("Hello\n");
+
+        ScrabbleEngineController sec = loader.getController();
+
+        assertEquals("Hello", sec.consoleController.getLastCommand());
+    }
+
+    /*
+        Goal: To test that the help command works as expected.
+        Testing Method: Call the help command and verify the output produced.
+     */
+    @Test
+    public void testHelpCommand(FxRobot robot)
+    {
+        robot.clickOn(".text-field");
+        robot.write("Help\n");
+        TextArea cd = (TextArea) robot.lookup("#consoleDisplay").query();
+        assertEquals("Welcome to our Scrabble game! \n" +
+                " To start the game use command Start. Before you do this, please enter Usernames for each player using Format: Username <name> <playerNumber>\n" +
+                "To quit, use command Quit\n" +
+                "Help\n" +
+                "<--------- Help Message --------->\n" +
+                "Commands: {Start, Quit, Help, Exchange, (Move), Username}\n" +
+                "Start: Can only be used when no game has been started, starts the game\n" +
+                "Quit: Quits the game and closes the window\n" +
+                "Help: Help prints this message\n" +
+                "Exchange: Exchange is used to change letters on your frame. Format: Exchange a b c \n" +
+                "Exchanging letters will end your turn\n" +
+                "(Move): To play a word, you need to use format <GridRef> <direction> <Word> \n" +
+                "E.g. H8 Across Hello \n" +
+                "Username: Username is used to set the player names. Format: Username <name> <playernum>\n" +
+                "<--------- End --------->\n", cd.getText());
+    }
+
+    /*
+        Goal: To test that the exchange command works as expected.
+        Testing Method: Call exchange and verify that the tiles were exchanged.
+     */
+    @Test
+    public void testExchangeCommand(FxRobot robot)
+    {
+        try
+        {
+            robot.clickOn(".text-field");
+            robot.write("Start\n");
+
+            ScrabbleEngineController sec = loader.getController();
+
+            int currentPlayerNum = sec.getCurrentPlayerNum();
+
+            ArrayList<Tile> f = (ArrayList<Tile>) sec.getPlayer(currentPlayerNum).getFrame().getTiles().clone();
+
+            robot.write("Exchange " + f.get(0) + " " + f.get(1) + " " + "\n");
+            TextArea cd = (TextArea) robot.lookup("#consoleDisplay").query();
+
+            assertNotEquals(f, sec.getPlayer(currentPlayerNum).getFrame().getTiles());
+        }
+        catch(Exception ex)
+        {
+            fail("No exception should be thrown when exchanging tiles.");
+        }
+    }
+
+    @Test
+    public void testQuitCommand(FxRobot robot)
+    {
+        robot.clickOn(".text-field");
+        robot.write("Quit\n");
+    }
+
 }

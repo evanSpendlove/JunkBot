@@ -88,7 +88,7 @@ public class Square implements java.io.Serializable
         }
         else
         {
-            System.out.println("Error: Square is currently empty.");
+            // System.out.println("Error: Square is currently empty.");
             return null; // Return null for error checking.
         }
     }

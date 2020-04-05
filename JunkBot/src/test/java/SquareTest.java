@@ -1,5 +1,3 @@
-package java;
-
 import org.junit.jupiter.api.Test;
 import scrabbleGame.gameModel.Square;
 import scrabbleGame.gameModel.Tile;
@@ -190,6 +188,46 @@ public class SquareTest
         catch(Exception ex)
         {
             assertEquals("A Square cannot have a tile on it and have a special type.", ex.getMessage());
+        }
+    }
+
+    /*
+        Goal: To test that the clearTile() method works when a tile is occupied.
+        Testing Method: Create a square, add a tile, remove the tile, check the square is now empty.
+     */
+    @Test
+    public void testClearTileOccupied()
+    {
+        try
+        {
+            Square s = new Square();
+            s.setTile(Tile.A);
+            s.clearTile();
+            assertNull(s.getTile());
+            assertFalse(s.isOccupied());
+        }
+        catch(Exception ex)
+        {
+            fail("No exception should be thrown when removing a tile from an occupeid square.");
+        }
+    }
+
+    /*
+        Goal: To test that you cannot clear a tile from a square that is not occupied.
+        Testing Method: Instantiate a square. Try removing a tile when it is not occupied and check the exception thrown.
+     */
+    @Test
+    public void testClearTileNotOccupied()
+    {
+        try
+        {
+            Square s = new Square();
+            s.clearTile();
+            fail("Should not be able to remove a tile from a Square that is not occupied.");
+        }
+        catch(Exception ex)
+        {
+            assertEquals("Cannot clear a tile from a square that is not occupied.", ex.getMessage());
         }
     }
 

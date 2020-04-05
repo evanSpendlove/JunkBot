@@ -1,5 +1,3 @@
-package java;
-
 import org.junit.jupiter.api.Test;
 import scrabbleGame.gameModel.*;
 
@@ -25,6 +23,136 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class BoardTest
 {
+
+    private int playMove(Board b, int startX, int startY, char[] word, String direction, boolean[] isHook)
+    {
+        ArrayList<Tile> tiles = new ArrayList<>();
+        String moveWord = "";
+
+        for(char letter : word)
+        {
+            tiles.add(Tile.getInstance(letter));
+            moveWord += letter;
+        }
+
+        while(tiles.size() < 7)
+        {
+            tiles.add(Tile.getInstance('A'));
+        }
+
+        int hooks = 0;
+
+        for(int i = 0; i < isHook.length; i++)
+        {
+            if(isHook[i])
+            {
+                hooks++;
+            }
+        }
+
+        Frame frame = new Frame(tiles);
+
+        Player p1 = new Player("Aang", 0, frame);
+
+        ArrayList<Placement> plays = new ArrayList<>();
+
+        int playDirection = -1;
+
+        if(direction.equals("across")) // Play across, increment x
+        {
+            for(int i = 0; i < word.length; i++)
+            {
+                if(!isHook[i]) // If not a hook
+                {
+                    plays.add(new Placement(startX, startY, word[i]));
+                }
+
+                startX++;
+            }
+            playDirection = 0;
+        }
+        else // Play vertical, increment y
+        {
+            for(int i = 0; i < word.length; i++)
+            {
+                if(!isHook[i]) // If not a hook
+                {
+                    plays.add(new Placement(startX, startY, word[i]));
+                }
+
+                startY++;
+            }
+
+            playDirection = 1;
+        }
+
+        return b.placeWord(new Move(plays, moveWord, playDirection), p1);
+    }
+
+    private int playFirstMove(Board b, int startX, int startY, char[] word, String direction, boolean[] isHook)
+    {
+        ArrayList<Tile> tiles = new ArrayList<>();
+        String moveWord = "";
+
+        for(char letter : word)
+        {
+            tiles.add(Tile.getInstance(letter));
+            moveWord += letter;
+        }
+
+        while(tiles.size() < 7)
+        {
+            tiles.add(Tile.getInstance('A'));
+        }
+
+        int hooks = 0;
+
+        for(int i = 0; i < isHook.length; i++)
+        {
+            if(isHook[i])
+            {
+                hooks++;
+            }
+        }
+
+        Frame frame = new Frame(tiles);
+
+        Player p1 = new Player("Aang", 0, frame);
+
+        ArrayList<Placement> plays = new ArrayList<>();
+
+        int playDirection = -1;
+
+        if(direction.equals("across")) // Play across, increment x
+        {
+            for(int i = 0; i < word.length; i++)
+            {
+                if(!isHook[i]) // If not a hook
+                {
+                    plays.add(new Placement(startX, startY, word[i]));
+                }
+
+                startX++;
+            }
+            playDirection = 0;
+        }
+        else // Play vertical, increment y
+        {
+            for(int i = 0; i < word.length; i++)
+            {
+                if(!isHook[i]) // If not a hook
+                {
+                    plays.add(new Placement(startX, startY, word[i]));
+                }
+
+                startY++;
+            }
+
+            playDirection = 1;
+        }
+
+        return b.placeFirstWord(new Move(plays, moveWord, playDirection), p1);
+    }
 
     @Test
     public void testFullConstructor(){
@@ -140,28 +268,23 @@ public class BoardTest
 
     @Test
     public void testResetBoard(){
-        try{
+        try
+        {
             Board test = new Board();
             Board test2 = new Board();
-            ArrayList<Placement> ply;
-            Move m;
-            ply = new ArrayList<>();
 
-            Placement p1 = new Placement(8, 6, 'D');
-            Placement p2 = new Placement(8, 8, 'E');
+            char[] word1 = {'Q', 'U', 'E'};
+            boolean[] isHook1 = {false, false, false};
+            assertEquals(2, playMove(test, 7, 7, word1, "across", isHook1));
 
-            ply.add(p1);
-            ply.add(p2);
-
-            m = new Move(ply, "DUE", 1);
-            Player a = new Player("Reuben");
-
-            test.placeWord(m,a);
             test.resetBoard();
             assertEquals(test.toString(), test2.toString());
             assertEquals(test.getStatus(), test2.getStatus());
             assertEquals(test.getWordsPlayed(),test2.getWordsPlayed());
-        }catch(Exception ex){
+        }
+        catch(Exception ex)
+        {
+            ex.printStackTrace();
             fail("No exceptions should be thrown");
         }
     }
@@ -259,25 +382,14 @@ public class BoardTest
     }
 
     @Test
-    public void testFirstMove(){
-
+    public void testFirstMove()
+    {
         Board test = new Board();
-        ArrayList<Tile> x = new ArrayList<>();
-        for(int ew=0;ew<5;ew++)
-            x.add(Tile.getInstance('Q'));
-        x.add(Tile.getInstance('U'));
-        x.add(Tile.getInstance('E'));
-        Frame q = new Frame(x);
-        Player one = new Player("ree", 0, q);
 
-        Placement t = new Placement(7, 7, 'Q');
-        Placement t1 = new Placement(8, 7, 'u');
-        Placement t2 = new Placement(9, 7, 'e');
-        List<Placement> y= new ArrayList<>();
-        y.add(t);
-        y.add(t1);
-        y.add(t2);
-        assertEquals(2, test.placeFirstWord(new Move(y, "QUE", 0), one));
+        char[] word1 = {'Q', 'U', 'E'};
+        boolean[] isHook1 = {false, false, false};
+        assertEquals(2, playFirstMove(test, 7, 7, word1, "across", isHook1));
+
         assertEquals("3W _ _ 2L _ _ _ 3W _ _ _ 2L _ _ 3W \n" +
                 "_ 2W _ _ _ 3L _ _ _ 3L _ _ _ 2W _ \n" +
                 "_ _ 2W _ _ _ 2L _ 2L _ _ _ 2W _ _ \n" +
@@ -296,21 +408,10 @@ public class BoardTest
 
         test.resetBoard();
 
-        Placement o = new Placement(8, 6, 'D');
-        Placement o1 = new Placement(8, 8, 'E');
+        char[] word = {'D', 'U', 'E'};
+        boolean[] isHook = {false, false, false};
 
-        x.clear();
-        for(int ew=0;ew<5;ew++)
-            x.add(Tile.getInstance('Q'));
-        x.add(Tile.getInstance('D'));
-        x.add(Tile.getInstance('E'));
-        one.setFrame(new Frame(x));
-
-        List<Placement> z = new ArrayList<>();
-        z.add(o);
-        z.add(o1);
-
-        assertEquals(-1, test.placeWord(new Move(z, "DUE", 1), one));
+        assertEquals(-1, playFirstMove(test, 9, 7, word, "down", isHook));
     }
 
     @Test
@@ -417,7 +518,6 @@ public class BoardTest
         assertEquals(-1, test.placeFirstWord(new Move(y, "QUE", 0), one));
     }
 
-
     @Test
     public void testDuplicateLettersInFrame()
     {
@@ -438,6 +538,182 @@ public class BoardTest
         y.add(t1);
         y.add(t2);
         assertEquals(2, test.placeFirstWord(new Move(y, "QQE", 0), one));
+    }
+
+    /*
+        Goal: To test that the isValidPosition catches out of bounds plays.
+        Testing Method: Test the isValidPosition with an invalid and valid move.
+     */
+    @Test
+    public void testIsValidPosition()
+    {
+        try
+        {
+            Board board = new Board();
+
+            char[] letters = {'C', 'A', 'R', 'D'};
+            ArrayList<Tile> tiles = new ArrayList<>();
+
+            for(char letter : letters)
+            {
+                tiles.add(Tile.getInstance(letter));
+            }
+
+            tiles.add(Tile.T);
+            tiles.add(Tile.T);
+            tiles.add(Tile.T);
+
+            Frame frame = new Frame(tiles);
+
+            Player player = new Player("Natsu", 0, frame);
+
+            ArrayList<Placement> plays = new ArrayList<>();
+            int x = 7, y = 7;
+
+            for(char letter : letters)
+            {
+                plays.add(new Placement(x++, y, letter));
+            }
+
+            Move m = new Move(plays, "CARD", 0);
+
+            assertEquals(2, board.placeFirstWord(m, player));
+
+            // Test that you cannot overlap words
+
+            Frame frame2 = new Frame(tiles);
+
+            Player player2 = new Player("Gray", 0, frame2);
+
+            ArrayList<Placement> plays3 = new ArrayList<>();
+            int x3 = 10, y3 = 7;
+
+            for(char letter : letters)
+            {
+                plays3.add(new Placement(x3++, y3, letter));
+            }
+
+            Move m3 = new Move(plays, "CARD", 0);
+            assertEquals(-1, board.placeWord(m3, player2));
+        }
+        catch(Exception ex)
+        {
+            fail("No exception should be thrown when placing a valid or invalid word.");
+        }
+    }
+
+    @Test
+    public void testContainsBlanks()
+    {
+        Board test = new Board();
+        ArrayList<Tile> x = new ArrayList<>();
+        for(int ew=0;ew<5;ew++)
+            x.add(Tile.getInstance('Q'));
+        x.add(Tile.getInstance('#'));
+        x.add(Tile.getInstance('E'));
+        Frame q = new Frame(x);
+        Player one = new Player("ree", 0, q);
+
+        Placement t = new Placement(7, 7, 'Q');
+        Placement t1 = new Placement(8, 7, 'u');
+        Placement t2 = new Placement(9, 7, 'e');
+        List<Placement> y= new ArrayList<>();
+        y.add(t);
+        y.add(t1);
+        y.add(t2);
+        assertEquals(2, test.placeFirstWord(new Move(y, "QUE", 0), one));
+
+        Placement o = new Placement(8, 6, 'D');
+        Placement o1 = new Placement(8, 8, 'E');
+
+        x.clear();
+        for(int ew=0;ew<5;ew++)
+            x.add(Tile.getInstance('Q'));
+        x.add(Tile.getInstance('#'));
+        x.add(Tile.getInstance('#'));
+        one.setFrame(new Frame(x));
+
+        List<Placement> z = new ArrayList<>();
+        z.add(o);
+        z.add(o1);
+
+        int result = test.placeWord(new Move(z, "DUE", 1), one);
+
+        assertEquals(2, result);
+    }
+
+    @Test
+    public void testContainsHooks()
+    {
+        Board test = new Board();
+        ArrayList<Tile> x = new ArrayList<>();
+        for(int ew=0;ew<5;ew++)
+            x.add(Tile.getInstance('Q'));
+        x.add(Tile.getInstance('U'));
+        x.add(Tile.getInstance('E'));
+        Frame q = new Frame(x);
+        Player one = new Player("ree", 0, q);
+
+        Placement t = new Placement(7, 7, 'Q');
+        Placement t1 = new Placement(8, 7, 'u');
+        Placement t2 = new Placement(9, 7, 'e');
+        List<Placement> y= new ArrayList<>();
+        y.add(t);
+        y.add(t1);
+        y.add(t2);
+        assertEquals(2, test.placeFirstWord(new Move(y, "QUE", 0), one));
+
+        Placement o = new Placement(8, 6, 'D');
+        Placement o1 = new Placement(8, 8, 'E');
+
+        x.clear();
+        for(int ew=0;ew<5;ew++)
+            x.add(Tile.getInstance('Q'));
+        x.add(Tile.getInstance('D'));
+        x.add(Tile.getInstance('E'));
+        one.setFrame(new Frame(x));
+
+        List<Placement> z = new ArrayList<>();
+        z.add(o);
+        z.add(o1);
+
+        int result = test.placeWord(new Move(z, "DUE", 1), one);
+
+        assertEquals(2, result);
+    }
+
+    @Test
+    public void testHookedHorizontal()
+    {
+        try
+        {
+            Board test = new Board();
+
+            char[] word1 = {'Q', 'U', 'E'};
+            boolean[] isHook1 = {false, false, false};
+            assertEquals(2, playFirstMove(test, 7, 7, word1, "across", isHook1));
+
+            char[] word = {'D', 'U', 'E'};
+            boolean[] isHook = {false, true, false};
+
+            assertEquals(2, playMove(test, 8, 6, word, "down", isHook));
+
+            char[] word2 = {'D', 'U', 'D', 'E', 'S'};
+            boolean[] isHook2 = {true, false, false, false, false};
+
+            assertEquals(2, playMove(test, 8, 6, word2, "across", isHook2));
+
+            char[] word3 = {'S', 'E', 'E'};
+            boolean[] isHook3 = {false, true, false};
+
+            assertEquals(2, playMove(test, 7, 8, word3, "across", isHook3));
+
+            test.printBoard();
+        }
+        catch(Exception ex)
+        {
+            ex.printStackTrace();
+        }
     }
 }
 

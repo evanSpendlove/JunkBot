@@ -16,7 +16,7 @@ import java.util.HashSet;
  */
 public class Lexicon
 {
-    private static HashSet<String> lex; // Dictionary as a hashset
+    private static HashSet<String> lex; // Dictionary as a HashSet
     private static boolean initialised = false; // Boolean for tracking if the dictionary object has been initialised
 
     /**
@@ -74,10 +74,24 @@ public class Lexicon
 
     /**
      * Adds a given word to the dictionary
-     * @param word, The word being added to the dictionary
+     * @param word The word being added to the dictionary
      */
     private static void addWord(String word)
     {
         lex.add(word);
+    }
+
+    /**
+     * Returns the size of the dictionary (as a HashSet)
+     * @return int Returns the size of the HashSet asn an int
+     */
+    public static int size()
+    {
+        if(!initialised)
+        {
+            return 0;
+        }
+
+        return lex.size();
     }
 }

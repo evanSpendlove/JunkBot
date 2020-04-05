@@ -1,5 +1,3 @@
-package java;
-
 import org.junit.jupiter.api.Test;
 import scrabbleGame.gameModel.Frame;
 import scrabbleGame.gameModel.Pool;
@@ -514,6 +512,67 @@ public class FrameTest
             assertEquals(7, test.getTiles().size());
         } catch (Exception ex){
             fail("No exception should be thrown");
+        }
+    }
+
+    /*
+      Goal: To test that you can exchange a blank for another letter when there is a blank in the frame.
+      Testing Method: Fill a frame, include on blank, exchange it and test that the new letter exists in the frame.
+     */
+    @Test
+    public void testExchangeValidBlank()
+    {
+        try
+        {
+            // Create an array list and fill it
+            ArrayList<Tile> tiles = new ArrayList<Tile>();
+            tiles.add(Tile.A);
+            tiles.add(Tile.BLANK);
+            tiles.add(Tile.C);
+            tiles.add(Tile.D);
+            tiles.add(Tile.E);
+            tiles.add(Tile.F);
+            tiles.add(Tile.G);
+
+            Frame test = new Frame(tiles);
+
+            test.exchangeBlank(Tile.B);
+
+            assertEquals(Tile.B, test.getTile('B'));
+            assertTrue(test.containsTile('B'));
+        }
+        catch(Exception ex)
+        {
+
+        }
+    }
+
+    /*
+      Goal: To test that you cannot exchange a blank when there isn't one in the frame.
+      Testing Method: Try exchanging a blank with a frame that does not contain a blank.
+     */
+    @Test
+    public void testExchangeInvalidBlank()
+    {
+        try
+        {
+            // Create an array list and fill it
+            ArrayList<Tile> tiles = new ArrayList<Tile>();
+            tiles.add(Tile.A);
+            tiles.add(Tile.B);
+            tiles.add(Tile.C);
+            tiles.add(Tile.D);
+            tiles.add(Tile.E);
+            tiles.add(Tile.F);
+            tiles.add(Tile.G);
+
+            Frame test = new Frame(tiles);
+
+            test.exchangeBlank(Tile.Z);
+        }
+        catch(Exception ex)
+        {
+            assertEquals("This frame does not contain a blank tile to be exchanged.", ex.getMessage());
         }
     }
 

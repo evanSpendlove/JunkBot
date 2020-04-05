@@ -1,5 +1,3 @@
-package java;
-
 import org.junit.jupiter.api.Test;
 import scrabbleGame.gameModel.Frame;
 import scrabbleGame.gameModel.Player;
