@@ -15,11 +15,17 @@ For this project, we used IntelliJ IDEA as our IDE and Maven for package managem
 - [Downloading and using IntelliJ IDEA](https://www.jetbrains.com/idea/)
 
 &nbsp;
+## Running the JAR
+Double click the jar file, or right-click and run with JAR Launcher.
+Alternatively, run using your IDE.
+
+&nbsp;
 ## Running the Unit-Tests.
 
 Prerequisites:
 - Java 11
 - JUnit 5
+- TestFX 4.0.16 (See pom.xml for more TestFX-associated pre-requisites)
 - IDE
 
 Using IntelliJ:
@@ -108,4 +114,12 @@ see [Trello](https://trello.com/b/54o8lgQ2/core-progress)
 | ------------- | ------------- | ------------- |
 | Game Engine  |JavaFX (FXML, etc.)   |Scoring
 | some Testing   |Some Testing     |Some testing
+****************
+
+## Sprint 4 - Short Docs
+### Who did what
+| Reuben        | Evan          | Cal           |
+| ------------- | ------------- | ------------- |
+| Challenge Command |TestFX Unit-Testing   |Lexicon Class
+| Some commenting   |Some debugging & commenting     |
 ****************
