@@ -4,9 +4,12 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import scrabbleGame.exceptions.TileNotFound;
 import scrabbleGame.gameEngine.ScrabbleEngineController;
 import scrabbleGame.gameModel.Move;
 import scrabbleGame.gameModel.Placement;
+import scrabbleGame.gameModel.Player;
+import scrabbleGame.gameModel.Tile;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -60,6 +63,10 @@ public class ConsoleController
      * Game started boolean flag
      */
     private boolean gameStarted = false;
+
+    private String lastWordPlayed;
+    private Move lastMove; // Changed to Move type instead of String
+    private int scoreLastWord;
 
     /**
      * String holding the help message for the console command "help"
@@ -170,8 +177,7 @@ public class ConsoleController
      * @param input The command string to be parsed
      * @throws IllegalArgumentException
      */
-    private void parseInput(String input) throws IllegalArgumentException
-    {
+    private void parseInput(String input) throws IllegalArgumentException, TileNotFound {
 
         if(input.isEmpty()){
             throw new IllegalArgumentException("Input cannot be empty");
@@ -198,6 +204,9 @@ public class ConsoleController
         if(flag == -1){
             if(split[0].matches("([A-Oa-o][1-9])|([A-Oa-o][1][0-5])") == true && split.length == 3){
                 flag = 5;
+            }
+            if(split[0].equalsIgnoreCase("Challenge")){
+                flag = 6;
             }
         }
 
@@ -360,9 +369,10 @@ public class ConsoleController
 
                         //Update the frame controller with the word played (removing the tiles from the frame)
                         getScrabbleEngineController().currentFrameController.playWord(newMove);
-
+                        setLastMove(newMove);
                         // Update the score
-                        getScrabbleEngineController().getPlayer(getScrabbleEngineController().getCurrentPlayerNum()).increaseScore(getScrabbleEngineController().scoring(newMove));
+                        int newScore = getScrabbleEngineController().scoring(newMove);
+                        getScrabbleEngineController().getPlayer(getScrabbleEngineController().getCurrentPlayerNum()).increaseScore(newScore);
                     }
                     else{
                         //Print a fail message
@@ -382,9 +392,10 @@ public class ConsoleController
 
                         //Update the board to display the played word
                         getScrabbleEngineController().boardController.updateBoard(getScrabbleEngineController().getBoard());
-
+                        setLastMove(newMove);
                         // Update the score
-                        getScrabbleEngineController().getPlayer(getScrabbleEngineController().getCurrentPlayerNum()).increaseScore(getScrabbleEngineController().scoring(newMove));
+                        int newScore = getScrabbleEngineController().scoring(newMove);
+                        getScrabbleEngineController().getPlayer(getScrabbleEngineController().getCurrentPlayerNum()).increaseScore(newScore);
                     }
                     else {
                         //Print an error message
@@ -394,9 +405,16 @@ public class ConsoleController
                 }
 
                 getScrabbleEngineController().updateScore();
+                setLastMove(newMove);
+
                 //Switch the turn after move complete
                 getScrabbleEngineController().switchPlayerDelay();
                 break;
+
+            case 6:
+                challengeWord(split[1]);
+                break;
+                
 
         }
     }
@@ -479,7 +497,11 @@ public class ConsoleController
         return placements;
     }
 
-    // TODO: Comment pls
+
+    /**
+     * Method updateLastWordsPlayed takes a word and adds it to the lastWordsPlayed function
+     * @param word
+     */
     public void updateLastWordsPlayed(String word)
     {
         if(!word.isEmpty())
@@ -492,7 +514,10 @@ public class ConsoleController
         }
     }
 
-    // TODO: Comment pls
+    /**
+     * Method setLastMoveScore takes a score and sets the lastMoveScore variable
+     * @param score
+     */
     public void setLastMoveScore(int score)
     {
         if(score  > 0)
@@ -505,9 +530,138 @@ public class ConsoleController
         }
     }
 
-    // TODO: Comment pls
+    /**
+     * Method getLastWordsPlayed returns the lastWordsPlayed variable.
+     * @return
+     */
     public ArrayList<String> getLastWordsPlayed()
     {
         return lastWordsPlayed;
     }
+
+    /**
+     * Method challengeWord takes a word and checks if it is a real word against a set dictiionary, if it isn't it removes the previous players turn.
+     * If the challenge fails it ends the players turn
+     * @param word
+     * @throws TileNotFound
+     */
+    public void challengeWord(String word) throws TileNotFound {
+        int prevPlayer = 0;
+    
+        if(getScrabbleEngineController().getCurrentPlayerNum() == 1){
+            prevPlayer = 2;
+        }
+        else{
+            prevPlayer = 1;
+        }
+        if(!lastWordsPlayed.contains(word)){
+            addLineToConsole("Cannot challenge a word that wasn't played. Try again");
+            return;
+        }
+        if(getScrabbleEngineController().getDictionary().checkWord(word) == false){
+            removeWordFromBoard(getLastMove());
+            addTilesToFrame(getLastMove(), prevPlayer);
+            deductScore(getScorelastWord(), prevPlayer);
+            addLineToConsole("Challenge successful");
+            return;
+        } else {
+            addLineToConsole("Challenge unsuccessful");
+            getScrabbleEngineController().switchPlayerDelay();
+        }
+    }
+
+    /**
+     * Method removeWordFromBoard takes a move and removes the tiles from the board
+     * @param word
+     * @throws TileNotFound
+     */
+    public void removeWordFromBoard(Move word) throws TileNotFound {
+        for(int i = 0; i < word.getPlays().size(); i++){
+            int x = word.getPlays().get(i).getX();
+            int y = word.getPlays().get(i).getY();
+            getScrabbleEngineController().boardController.removeTileFromBoard(x,y);
+        }
+    }
+
+
+    /**
+     * Method addTilesToFrame takes a move and a player number and adds the tiles they played from the last turn back to their frame
+     * @param lastMove
+     * @param prevPlayer
+     */
+    public void addTilesToFrame(Move lastMove, int prevPlayer){
+        Player prevPlayerObj = getScrabbleEngineController().getPlayer(prevPlayer);
+        for(int i = 0; i < lastMove.getPlays().size(); i++){
+            char letter = lastMove.getPlays().get(i).getLetter();
+            prevPlayerObj.getFrame().addTile(Tile.getInstance(letter));
+        }
+    }
+
+    /**
+     * Method deductScore takes a score for the last word and a player number and adjusts the players score accordingly
+     * @param scoreLastWord
+     * @param prevPlayer
+     */
+    public void deductScore(int scoreLastWord, int prevPlayer){
+        Player prevPlayerObj = getScrabbleEngineController().getPlayer(prevPlayer);
+        int newScore = prevPlayerObj.getScore() - scoreLastWord;
+        prevPlayerObj.setScore(newScore);
+    }
+
+    /**
+     * Method setLastWordPlayed method takes a word and sets the setLastWordPlayed variable
+     * @param lap
+     */
+    public void setLastWordPlayed(String lap){
+        if(!lap.isEmpty()){
+            this.lastWordPlayed = lap;
+        }
+        else{
+            throw new IllegalArgumentException("The last word played cannot be blank.");
+        }
+    }
+
+    /**
+     * @return lastWordPlayed
+     */
+    public String getLastWordPlayed(){
+        return this.lastWordPlayed;
+    }
+
+    /**
+     * Method setLastMove takes a move and sets the lastMove variable
+     * @param m
+     */
+    public void setLastMove(Move m){
+        this.lastMove = m;
+    }
+
+    /**
+     * @return lastMove
+     */
+    public Move getLastMove(){
+        return this.lastMove;
+    }
+
+    /**
+     * Method setLastScore updates the scoreLastWord variable
+     * @param score
+     */
+    public void setScoreLastWord(int score){
+        if(score >= 0){
+            this.scoreLastWord = score;
+        }
+        else{
+            // Could be zero if they only play a single blank tile.
+            throw new IllegalArgumentException("The score of the last word cannot be negative.");
+        }
+    }
+
+    /**
+     * @return scoreLastWord
+     */
+    public int getScorelastWord(){
+        return this.scoreLastWord;
+    }
+
 }

@@ -135,6 +135,8 @@ public class ScrabbleEngineController
      */
     private int currentPlayerNum;
 
+    private Lexicon dictionary;
+
     /**
      * Holds the turn counter
      */
@@ -328,12 +330,15 @@ public class ScrabbleEngineController
         Board board = new Board();
         board.resetBoard();
 
+        Lexicon dict = new Lexicon();
+
         // Store in this instance
         setBoard(board);
         setCurrentFrame(p1Frame);
         setPlayer1(p1);
         setPlayer2(p2);
         setPool(pool);
+        setDictionary(dict);
         currentPlayerNum = 2;
         updateScore();
     }
@@ -846,6 +851,14 @@ public class ScrabbleEngineController
      */
     public int getTurnCounter() {
         return turnCounter;
+    }
+
+    public Lexicon getDictionary() {
+        return dictionary;
+    }
+
+    public void setDictionary(Lexicon dictionary) {
+        this.dictionary = dictionary;
     }
 }
 

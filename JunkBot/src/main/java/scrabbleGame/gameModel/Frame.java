@@ -70,7 +70,7 @@ public class Frame implements java.io.Serializable
      * Private method used for adding tiles to the Frame.
      * @param letter Pass the tile that you want to add to the Frame.
      */
-    private void addTile(Tile letter)
+    public void addTile(Tile letter)
     {
         this.tiles.add(letter); // Add the letter
     }
