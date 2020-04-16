@@ -1,7 +1,6 @@
 import java.util.ArrayList;
 
 public class Board implements BoardAPI {
-
 	public static final int BOARD_SIZE = 15;
 	public static final int BOARD_CENTRE = 7;
 	private static int BONUS = 50;
