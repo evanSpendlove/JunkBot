@@ -1,3 +1,5 @@
+import java.nio.charset.CharsetEncoder;
+
 public class Square {
 
     private int letterMuliplier;
@@ -61,6 +63,18 @@ public class Square {
     // getTile pre-condition: isOccupied must be true
     public Tile getTile() {
         return tile;
+    }
+
+    public String toString()
+    {
+        if(isOccupied)
+        {
+            return "" + getTile().getLetter();
+        }
+        else
+        {
+            return "_";
+        }
     }
 
 }
