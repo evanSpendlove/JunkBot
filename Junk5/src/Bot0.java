@@ -1247,4 +1247,1239 @@ public class Bot0 implements BotAPI {
             buf.close();
         }
     }
+    /**
+     * Class for representing a node in a GADDAG.
+     */
+    class GNode
+    {
+        // Fields
+        GNode[] children;
+        byte[] arcs;
+        byte[] end;
+        short childPointer = 0;
+        byte endPointer = 0;
+
+        @Override
+        public String toString() {
+            return "Node: " + "\narcs: " + Arrays.toString(this.byteArrayToCharArray(arcs))
+                    + "\nEnd: " + Arrays.toString(this.getEndArray()) + "\n";
+        }
+
+        // Constructors
+        public GNode()
+        {
+            children = new GNode[1];
+            arcs = new byte[1];
+            end = new byte[1];
+            gNodeCounter++;
+        }
+
+        // Methods
+        public GNode put(char newArc, GNode node)
+        {
+            GNode child = this.get(newArc);
+
+            putCounter++;
+
+            if (child == null)  // If there is no child yet
+            {
+                // Check if there is space
+                children = checkArrayLength(children, childPointer);
+                arcs = checkArrayLength(arcs, childPointer);
+
+                //System.out.println("Child pointer: " + childPointer);
+
+                // Add a new arc
+                arcs[childPointer] = charToByte(newArc);
+
+                // Update children
+                children[childPointer] = node;
+                //System.out.println("CP incremented: " + childPointer);
+                childPointer++;
+
+                if(childPointer > maxPutCounter)
+                {
+                    maxPutCounter = childPointer;
+                }
+
+
+                if(childPointer > 100)
+                {
+                    if(DEBUG)
+                    {
+                        System.out.println("Child Length: " + children.length);
+                        System.out.println("End length: " + end.length);
+                        System.out.println("Arcs length: " + arcs.length);
+                        System.out.println("Num Children: " + childPointer);
+                    }
+
+                    invalidPutCounter++;
+                }
+
+
+                // Return the new child
+                return node;
+            }
+            else  // Otherwise, there is a child so return it.
+            {
+                return child;
+            }
+        }
+
+        // Public wrapper for put
+        // Done
+        public GNode put(char transitionChar)
+        {
+            return this.put(transitionChar, new GNode());
+        }
+
+        // Done
+        // Getter for a character
+        public GNode get(char transitionChar)
+        {
+            // For each of the children, search for the transition char and return that node if it exists
+            for (int i = 0; i < childPointer; i++)
+            {
+                if (arcs[i] == charToByte(transitionChar))
+                {
+                    return children[i];
+                }
+            }
+            return null; // If it doesn't exist, return null
+        }
+
+        // Check if the node contains a string
+        public boolean contains(String word)
+        {
+            // We use # as a delimiter as it not a reserved character for regex matching or other java methods
+            if (!word.matches(".*#.*"))
+            {
+                return containsWord(word.charAt(0) + "#" + word.substring(1)); // Add delimiter
+            }
+            else
+            {
+                return containsWord(word); // Pass the word as it is formatted correctly
+            }
+        }
+
+        private boolean containsWord(String word)
+        {
+            GNode current = this;
+            int length = word.length();
+
+            // Check if the word is empty
+            if(length == 0)
+            {
+                return false;
+            }
+
+            // Iteratively parse through the word checking if each character is valid
+            for(int i = 0; i < length; i++)
+            {
+                char c = word.charAt(i); // Get the current character
+
+                // If this is the last character of the word and is a valid end
+                if(i == length - 1 && current.isValidEnd(c))
+                {
+                    return true;
+                }
+
+                // Otherwise, parse as normal.
+
+                current = this.get(c);
+
+                if(current == null) // If this node does not contain the letter
+                {
+                    return false;
+                }
+            }
+
+            return false;
+        }
+
+        public boolean isValidEnd(char endChar)
+        {
+            return arrayContainsChar(end, endChar);
+        }
+
+        public void addNewEnd(char endChar)
+        {
+            end = checkArrayLength(end, endPointer); // Check that sufficient space exists
+            end[endPointer] = charToByte(endChar);
+            endPointer++;
+        }
+
+        public char[] getEndArray() {
+            return byteArrayToCharArray(end);
+        }
+
+        public Set<Character> getEndSet()
+        {
+            Set<Character> endSet = new HashSet<Character>();
+
+            for (char c : byteArrayToCharArray(end)) {
+                endSet.add(c);
+                //System.out.println("Char: " + c);
+            }
+
+            return endSet;
+        }
+
+        public GNode[] getChildrenArray() {
+            return Arrays.copyOf(children, childPointer);
+        }
+
+        public char[] getArcs() {
+            return byteArrayToCharArray(arcs);
+        }
+
+        /**
+         * Method to convert a byte array to a char array.
+         * @param bytes Pass the byte array to be converted.
+         * @return char[] Returns a char array.
+         */
+        private char[] byteArrayToCharArray(byte[] bytes)
+        {
+            char[] out = new char[bytes.length];
+
+            for(int i = 0; i < bytes.length; i++)
+            {
+                out[i] = (char) bytes[i];
+            }
+
+            return out;
+        }
+
+        /**
+         * Method to ensure that there is enough space in an array for a new insertion
+         * @param array Pass the array to be checked
+         * @param targetIndex Pass the index at which you want to insert an item
+         * @return
+         */
+        private GNode[] checkArrayLength(GNode[] array, int targetIndex)
+        {
+
+            if (targetIndex >= array.length)
+            {
+                return Arrays.copyOf(array, array.length * 2);
+            }
+            return array;
+        }
+
+        /**
+         * Method to ensure that there is enough space in an array for a new insertion
+         * @param array Pass the array to be checked
+         * @param targetIndex Pass the index at which you want to insert an item
+         * @return
+         */
+        private byte[] checkArrayLength(byte[] array, int targetIndex)
+        {
+            //System.out.println("Target index: " + targetIndex);
+            //System.out.println("Array length: " + array.length);
+
+            if (Math.abs(targetIndex) >= array.length)  // If the target index lays outside of the current indices for the array
+            {
+                return Arrays.copyOf(array, array.length * 2); // Double the length
+            }
+
+            return array;
+        }
+
+        /**
+         * Method to search a byte array for a character
+         * @param array Pass the array to be searched
+         * @param targetChar Pass the target character
+         * @return boolean Returns true if the array contains the target character
+         */
+        private boolean arrayContainsChar(byte[] array, char targetChar)
+        {
+            byte targetByte = (byte) targetChar;
+
+            // Linear search for the byte version of the character
+            for (byte b : array)
+            {
+                if (b == targetByte)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /**
+         * Method to manipulate a character so it's only one byte instead of two.
+         * @param c Pass the character to be converted
+         * @return byte Returns a single byte representing the character
+         */
+        private byte charToByte(char c) {
+            return (byte) (c & 0x00FF);
+        }
+    }
+
+    class Move
+    {
+        ArrayList<Play> plays;
+
+        public Move()
+        {
+            plays = new ArrayList<>();
+        }
+
+        public Move(Move other)
+        {
+            this.plays = new ArrayList<>(other.plays);
+        }
+
+        public void addPlay(int x, int y, char c)
+        {
+            plays.add(new Play(x, y, c));
+        }
+
+        public void addPlay(Play p)
+        {
+            plays.add(p);
+        }
+    }
+
+    class Play
+    {
+        int r, c;
+        char letter;
+
+        public Play(int r, int c, char letter) {
+            this.r = r;
+            this.c = c;
+            this.letter = letter;
+        }
+
+        public int getR() {
+            return r;
+        }
+
+        public void setR(int r) {
+            this.r = r;
+        }
+
+        public int getC() {
+            return c;
+        }
+
+        public void setC(int c) {
+            this.c = c;
+        }
+
+        public char getLetter() {
+            return letter;
+        }
+
+        public void setLetter(char letter) {
+            this.letter = letter;
+        }
+    }
+
+
+    static class UtilityMethods
+    {
+        /**
+         * Method to reverse a String
+         * @param input Pass the input string to be reversed
+         * @return String Returns the input reversed.
+         */
+        public static String reverseString(String input)
+        {
+            return new StringBuilder(input).reverse().toString();
+        }
+
+        /**
+         * Method to generate a set containing every character in the alphabet
+         * @return Set Returns a set containing every character in the English alphabet
+         */
+        public static Set<Character> generateAlphabetSet()
+        {
+            HashSet<Character> alphabet = new HashSet<>();
+            String englishAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+            for(char c : englishAlphabet.toCharArray()) // Add all letters in the alphabet to the set
+            {
+                alphabet.add(c);
+            }
+
+            return alphabet;
+        }
+
+        public static boolean areEqual(Word w1, Word w2)
+        {
+            return (w1.getFirstColumn() == w2.getFirstColumn()) && (w1.getFirstRow() == w2.getFirstRow()) && (w1.isHorizontal() == w2.isHorizontal()) && (w1.getLetters().equals(w2.getLetters()));
+        }
+
+        public static ArrayList<Word> removeDuplicates(ArrayList<Word> list)
+        {
+            ArrayList<WordWithEquals> words = new ArrayList<>();
+            ArrayList<WordWithEquals> uniques = new ArrayList<>();
+
+            for(Word item : list)
+            {
+                words.add(new WordWithEquals(item));
+            }
+
+            for(WordWithEquals item : words)
+            {
+                if(!uniques.contains(item))
+                {
+                    uniques.add(item);
+                }
+            }
+
+            list.clear();
+
+            for(int i = 0; i < uniques.size(); i++)
+            {
+                list.add(uniques.get(i).w);
+            }
+
+            System.out.println(uniques.size() + " should be < " + words.size());
+
+            System.out.println("-------- ARE UNIQUE AFTER REMOVING DUPLICATES: " + StaticValueGenerator.areUnique(list));
+
+            return list;
+        }
+    }
+
+    // Gaddag following java implementation class
+    private class GADDAG
+    {
+        // Fields
+        private GNode root;
+
+        // Constructor
+        public GADDAG()
+        {
+            root = null;
+
+            // Find file and construct the gaddag from it
+            File file = new File("src/csw.txt");
+            try
+            {
+                root = buildGADDAG(new BufferedReader(new FileReader(file)));
+            }
+            catch(Exception ex)
+            {
+                ex.printStackTrace();
+            }
+            System.out.println("Nodes: " + gNodeCounter);
+        }
+
+        // Methods
+
+        /**
+         * Method to build the GADDAG using a BufferedReader.
+         * @param dict Pass the BufferedReadeer (linked to a dictionary file)
+         * @return GNode Returns the root of the GADDAG
+         * @throws IOException Throws an IOException if there is an issue with the file input
+         */
+        public GNode buildGADDAG(BufferedReader dict) throws IOException {
+            GNode initNode = new GNode();
+            String line;
+            int counter = 0;
+
+            // For each word in the dictionary
+            while((line = dict.readLine()) != null)
+            {
+                if(counter < 5)
+                {
+                    System.out.println("[" + line + "]");
+                    System.out.println("Reverse 2: " + UtilityMethods.reverseString(line.substring(0, line.length() - 1)) + "@" + line.substring(line.length() - 1));
+                }
+
+                counter++;
+                // Temp node for constructing branches
+                GNode curNode = initNode;
+
+                // Reverse the word and add it
+                String reversedWord = UtilityMethods.reverseString(line);
+
+                curNode = buildBranch(curNode, reversedWord);
+                //System.out.println("Reversed word: " + reversedWord);
+
+                // Reset curNode to the initial node
+                curNode = initNode;
+
+                // Handle the edge case of the almost reversed word
+                String almostReversedWord = UtilityMethods.reverseString(line.substring(0, line.length() - 1)) + "#" + line.substring(line.length() - 1);
+                //System.out.println("Almost reversed: " + almostReversedWord);
+                curNode = buildBranch(initNode, almostReversedWord);
+
+                // Build remaining cases
+                for(int i = line.length() - 3; i >= 0; i--)
+                {
+                    // Update pointers
+                    GNode tempNode = curNode;
+                    curNode = initNode;
+
+                    // Put all of the remaining characters in the word into the current node
+                    for(int j = i; j >= 0; j--)
+                    {
+                        curNode = curNode.put(line.charAt(j));
+                    }
+
+                    // Add the delimiter and update curNode
+                    curNode = curNode.put('#');
+
+                    // Add the initial character to tempNode
+                    curNode.put(line.charAt(i + 1), tempNode);
+
+                    if(curNode.childPointer > 100)
+                    {
+                        System.out.println("WEIRD...");
+                    }
+                }
+            }
+
+            System.out.println("GADDAG BUILT, Num words added: " + counter);
+
+            return initNode; // Return the newly created Gaddag
+        }
+
+        public GNode buildBranch(GNode node, String word)
+        {
+            branchCounter++;
+            GNode curNode = node;
+
+            //System.out.println("Word: " + word);
+            //System.out.println("Word length: " + word.length());
+
+            // For each character in the word except the last one
+            for(int i = 0; i < word.length() - 1; i++)
+            {
+                // Put the word into the curNode and update curNode
+                curNode = curNode.put(word.charAt(i));
+
+                // If final letter, add to end set
+                if(i == word.length() - 2)
+                {
+                    curNode.addNewEnd(word.charAt(word.length() - 1));
+                }
+
+                if(curNode.childPointer > 100 && DEBUG)
+                {
+                    System.out.println("CurNode Children: " + Arrays.toString(curNode.getChildrenArray()));
+                    System.out.println("WEIRD...");
+                }
+            }
+
+            return curNode;
+        }
+
+        // TODO
+        public ArrayList<String> traverse(GNode root)
+        {
+            ArrayList<String> words = new ArrayList<>();
+
+            // For each letter in the arcs of the root
+            for(char c : root.getArcs())
+            {
+                // Get the child
+                GNode child = root.get(c);
+
+                // If child is not null
+                if(child != null)
+                {
+                    // Add each word from traversing the child into the list
+                    for(String s : traverse(child))
+                    {
+                        words.add("" + c + s);
+                    }
+                }
+            }
+
+            for(char end : root.getEndArray())
+            {
+                words.add("" + end);
+            }
+
+            return words;
+        }
+
+        /**
+         * Method to get all words given a GADDAG, frame and board
+         * @param root Pass the current GADDAG root
+         * @param frame Pass the frame
+         * @param board Pass the board
+         * @return ArrayList Returns an ArrayList of valid word placements
+         */
+        public ArrayList<Word> getAllWords(GNode root, FrameObj frame, BoardObj board)
+        {
+            ArrayList<Word> words = new ArrayList<>();
+
+            // For each row and column
+            for(int r = 0; r < Board.BOARD_SIZE; r++)
+            {
+                for(int c = 0; c < Board.BOARD_SIZE; c++)
+                {
+                    // If the square is an anchor
+                    if(board.getSquare(r, c).isAnchor())
+                    {
+                        //System.out.println("[" + r + ", " + c + "] is anchor!");
+                        // Find words horizontally and vertically
+                        findHorizontal(0, r, c, board, frame, root, true, new Move(), words);
+                        findVertical(0, r, c, board, frame, root, true, new Move(), words);
+                    }
+                }
+            }
+
+            return words;
+        }
+
+        // Done
+        public void findHorizontal(int pos, int anchor_x, int anchor_y, BoardObj board, FrameObj frame, GNode oldArc, boolean reverse, Move initialMove, ArrayList<Word> words)
+        {
+            int curX = anchor_x + pos;
+
+            if(curX >= Board.BOARD_SIZE || curX < 0)
+            {
+                return;
+            }
+
+            if(board.squareIsOccupied(curX, anchor_y))
+            {
+                // If occupied, get the letter on the square
+                char letter = board.getSquare(curX, anchor_y).getTile().getLetter();
+                GNode newArc = oldArc.get(letter); // Create new node by traversing oldArc using letter
+                Move newMove = new Move(initialMove);
+                newMove.addPlay(curX, anchor_y, letter); // Add the letter to the move
+                goOnHorizontal(pos, anchor_x, anchor_y, letter, board, frame, oldArc, newArc, reverse, newMove, words);
+            }
+            else if(!frame.isEmpty()) // If we have letters to play
+            {
+                // For each tile
+                for(Tile tile : frame.getTiles())
+                {
+                    // If not a blank and a valid vertical placement for this square
+                    if(!tile.isBlank() && board.getSquare(curX, anchor_y).isValidHoriz(tile.getLetter()))
+                    {
+                        FrameObj frameCopy = frame.deepCopy(); // Copy on write
+                        frameCopy.removeTile(tile); // Remove the tile
+                        GNode newArc = oldArc.get(tile.getLetter()); // Traverse to this letter's node
+                        Move newMove = new Move(initialMove);
+                        newMove.addPlay(curX, anchor_y, tile.getLetter()); // Add the move
+                        goOnHorizontal(pos, anchor_x, anchor_y, tile.getLetter(), board, frameCopy, oldArc, newArc, reverse, newMove, words);
+                    }
+                }
+            }
+        }
+
+        // Done
+        public void goOnHorizontal(int pos, int anchor_x, int anchor_y, char letter, BoardObj board, FrameObj frame, GNode oldArc, GNode newArc, boolean reverse, Move move, ArrayList<Word> words)
+        {
+            // If a prefix
+            if(pos <= 0)
+            {
+                // If valid move ending and there is not letter left of it on the board
+                if(oldArc.isValidEnd(letter) && !board.getSquare(anchor_x + pos - 1, anchor_y).isOccupied() && !board.getSquare(anchor_x + 1, anchor_y).isOccupied())
+                {
+                    recordWord(words, move, false);
+                }
+
+                // Continue creating prefixes
+                if(newArc != null)
+                {
+                    findHorizontal(pos-1, anchor_x, anchor_y, board, frame, newArc, reverse, move, words);
+
+                    newArc = newArc.get('#');
+
+                    // If prefixes can be produced
+                    if(newArc != null && !board.getSquare(anchor_x + pos - 1, anchor_y).isOccupied())
+                    {
+                        findHorizontal(1, anchor_x, anchor_y, board, frame, newArc, false, move, words);
+                    }
+
+                }
+            }
+            else // Suffix as pos > 0
+            {
+                // If valid move ending and there is not letter right of it on the board
+                if(oldArc.isValidEnd(letter) && !board.getSquare(anchor_x + pos + 1, anchor_y).isOccupied())
+                {
+                    recordWord(words, move, false);
+                }
+
+                // If suffixes can be produced
+                if(newArc != null && !board.getSquare(anchor_x + pos + 1, anchor_y).isOccupied())
+                {
+                    oldArc = newArc;
+                    findHorizontal(pos + 1, anchor_x, anchor_y, board, frame, oldArc, reverse, move, words);
+                }
+            }
+        }
+
+        public void findVertical(int pos, int anchor_x, int anchor_y, BoardObj board, FrameObj frame, GNode oldArc, boolean reverse, Move move, ArrayList<Word> words)
+        {
+            int curY = anchor_y + pos;
+
+            if(curY >= Board.BOARD_SIZE || curY < 0)
+            {
+                return;
+            }
+
+            if(board.squareIsOccupied(anchor_x, curY))
+            {
+                // If occupied, get the letter on the square
+                char letter = board.getSquare(anchor_x, curY).getTile().getLetter();
+                GNode newArc = oldArc.get(letter); // Create new node by traversing oldArc using letter
+                Move newMove = new Move(move);
+                newMove.addPlay(anchor_x, curY, letter); // Add the letter to the move
+                goOnVertical(pos, anchor_x, anchor_y, letter, board, frame, oldArc, newArc, reverse, newMove, words);
+            }
+            else if(!frame.isEmpty()) // If we have letters to play
+            {
+                // For each tile
+                for(Tile tile : frame.getTiles())
+                {
+                    // If not a blank and a valid vertical placement for this square
+                    if(!tile.isBlank() && board.getSquare(anchor_x, curY).isValidVert(tile.getLetter()))
+                    {
+                        FrameObj frameCopy = frame.deepCopy(); // Copy on write
+                        frameCopy.removeTile(tile); // Remove the tile
+                        GNode newArc = oldArc.get(tile.getLetter()); // Traverse to this letter's node
+                        Move newMove = new Move(move);
+                        newMove.addPlay(new Play(anchor_x, curY, tile.getLetter())); // Add the move
+                        goOnVertical(pos, anchor_x, anchor_y, tile.getLetter(), board, frameCopy, oldArc, newArc, reverse, newMove, words);
+                    }
+                }
+            }
+        }
+
+        public void goOnVertical(int pos, int anchor_x, int anchor_y, char letter, BoardObj board, FrameObj frame, GNode oldArc, GNode newArc, boolean reverse, Move move, ArrayList<Word> words)
+        {
+            // If a prefix
+            if(pos <= 0)
+            {
+                // If valid move ending and there is not letter left of it on the board
+                if(oldArc.isValidEnd(letter) && !board.getSquare(anchor_x + pos - 1, anchor_y).isOccupied() && !board.getSquare(anchor_x, anchor_y + 1).isOccupied())
+                {
+                    recordWord(words, move, true);
+                }
+
+                // Continue creating prefixes
+                if(newArc != null)
+                {
+                    findVertical(pos-1, anchor_x, anchor_y, board, frame, newArc, false, move, words);
+
+                    newArc = newArc.get('#');
+
+                    // If prefixes can be produced
+                    if(newArc != null && !board.getSquare(anchor_x, anchor_y + pos - 1).isOccupied())
+                    {
+                        findVertical(1, anchor_x, anchor_y, board, frame, newArc, false, move, words);
+                    }
+
+                }
+            }
+            else // Suffix as pos > 0
+            {
+                // If valid move ending and there is not letter right of it on the board
+                if(oldArc.isValidEnd(letter) && !board.getSquare(anchor_x, anchor_y + pos + 1).isOccupied())
+                {
+                    recordWord(words, move, true);
+                }
+
+                // If suffixes can be produced
+                if(newArc != null && !board.getSquare(anchor_x, anchor_y + pos + 1).isOccupied())
+                {
+                    oldArc = newArc;
+                    findVertical(pos + 1, anchor_x, anchor_y, board, frame, newArc, reverse, move, words);
+                }
+            }
+        }
+
+        private void recordWord(ArrayList<Word> words, Move m, boolean isHorizontal)
+        {
+            /*
+            if(m.plays.get(0).getC() != m.plays.get(1).getC())
+            {
+                System.out.println("HORIZONTAL == TRUE == " + isHorizontal);
+            }
+            else
+            {
+                System.out.println("HORIZONTAL == FALSE == " + isHorizontal);
+            }
+
+             */
+
+            sortMove(m, isHorizontal);
+
+            StringBuilder sb = new StringBuilder();
+
+            for(Play p : m.plays)
+            {
+                sb.append(p.getLetter());
+            }
+
+            /*
+
+                System.out.println("Word: " + sb.toString());
+
+                for(int i = 0; i < m.plays.size(); i++)
+                {
+                    System.out.println("Tile: " + m.plays.get(i).letter + " | Row: " + m.plays.get(i).getR() + " | Col: " + m.plays.get(i).getC() );
+                }
+                System.out.println("Is horizontal: " + isHorizontal);
+                System.out.println();
+
+             */
+
+            Word w = new Word(m.plays.get(0).getR(), m.plays.get(0).getC(), isHorizontal, sb.toString());
+
+            /*
+            System.out.println();
+            for(int i = 0; i < w.getLetters().length(); i++)
+            {
+                if(w.isHorizontal())
+                {
+                    System.out.println("HORIZONTAL: Tile: " + w.getLetters().charAt(i) + " | Row: " + (w.getFirstRow()) + " | Col: " + (w.getFirstColumn() + i));
+                }
+                else
+                {
+                    System.out.println("VERTICAL: Tile: " + w.getLetters().charAt(i) + " | Row: " + (w.getFirstRow() + i) + " | Col: " + (w.getFirstColumn()));
+                }
+            }
+            System.out.println();
+
+            ArrayList<Word> testWords = new ArrayList<>();
+            testWords.add(w);
+
+             */
+
+            /*
+            if(dictionary.areWords(testWords))
+            {
+                words.add(w);
+            }
+
+             */
+
+            words.add(w);
+        }
+
+        private void sortMove(Move m, boolean isHorizontal)
+        {
+            if(isHorizontal) // X changes, y does not
+            {
+                m.plays.sort(Comparator.comparingInt(Play::getC));
+            }
+            else
+            {
+                m.plays.sort(Comparator.comparingInt(Play::getR));
+            }
+        }
+
+        // Getters & Setters
+        public GNode getRoot()
+        {
+            return this.root;
+        }
+
+    }
+
+    /**
+     * Class for representing a node in a GADDAG.
+     */
+    class GNode
+    {
+        // Fields
+        GNode[] children;
+        byte[] arcs;
+        byte[] end;
+        short childPointer = 0;
+        byte endPointer = 0;
+
+        @Override
+        public String toString() {
+            return "Node: " + "\narcs: " + Arrays.toString(this.byteArrayToCharArray(arcs))
+                    + "\nEnd: " + Arrays.toString(this.getEndArray()) + "\n";
+        }
+
+        // Constructors
+        public GNode()
+        {
+            children = new GNode[1];
+            arcs = new byte[1];
+            end = new byte[1];
+            gNodeCounter++;
+        }
+
+        // Methods
+        public GNode put(char newArc, GNode node)
+        {
+            GNode child = this.get(newArc);
+
+            putCounter++;
+
+            if (child == null)  // If there is no child yet
+            {
+                // Check if there is space
+                children = checkArrayLength(children, childPointer);
+                arcs = checkArrayLength(arcs, childPointer);
+
+                //System.out.println("Child pointer: " + childPointer);
+
+                // Add a new arc
+                arcs[childPointer] = charToByte(newArc);
+
+                // Update children
+                children[childPointer] = node;
+                //System.out.println("CP incremented: " + childPointer);
+                childPointer++;
+
+                if(childPointer > maxPutCounter)
+                {
+                    maxPutCounter = childPointer;
+                }
+
+
+                if(childPointer > 100)
+                {
+                    if(DEBUG)
+                    {
+                        System.out.println("Child Length: " + children.length);
+                        System.out.println("End length: " + end.length);
+                        System.out.println("Arcs length: " + arcs.length);
+                        System.out.println("Num Children: " + childPointer);
+                    }
+
+                    invalidPutCounter++;
+                }
+
+
+                // Return the new child
+                return node;
+            }
+            else  // Otherwise, there is a child so return it.
+            {
+                return child;
+            }
+        }
+
+        // Public wrapper for put
+        // Done
+        public GNode put(char transitionChar)
+        {
+            return this.put(transitionChar, new GNode());
+        }
+
+        // Done
+        // Getter for a character
+        public GNode get(char transitionChar)
+        {
+            // For each of the children, search for the transition char and return that node if it exists
+            for (int i = 0; i < childPointer; i++)
+            {
+                if (arcs[i] == charToByte(transitionChar))
+                {
+                    return children[i];
+                }
+            }
+            return null; // If it doesn't exist, return null
+        }
+
+        // Check if the node contains a string
+        public boolean contains(String word)
+        {
+            // We use # as a delimiter as it not a reserved character for regex matching or other java methods
+            if (!word.matches(".*#.*"))
+            {
+                return containsWord(word.charAt(0) + "#" + word.substring(1)); // Add delimiter
+            }
+            else
+            {
+                return containsWord(word); // Pass the word as it is formatted correctly
+            }
+        }
+
+        private boolean containsWord(String word)
+        {
+            GNode current = this;
+            int length = word.length();
+
+            // Check if the word is empty
+            if(length == 0)
+            {
+                return false;
+            }
+
+            // Iteratively parse through the word checking if each character is valid
+            for(int i = 0; i < length; i++)
+            {
+                char c = word.charAt(i); // Get the current character
+
+                // If this is the last character of the word and is a valid end
+                if(i == length - 1 && current.isValidEnd(c))
+                {
+                    return true;
+                }
+
+                // Otherwise, parse as normal.
+
+                current = this.get(c);
+
+                if(current == null) // If this node does not contain the letter
+                {
+                    return false;
+                }
+            }
+
+            return false;
+        }
+
+        public boolean isValidEnd(char endChar)
+        {
+            return arrayContainsChar(end, endChar);
+        }
+
+        public void addNewEnd(char endChar)
+        {
+            end = checkArrayLength(end, endPointer); // Check that sufficient space exists
+            end[endPointer] = charToByte(endChar);
+            endPointer++;
+        }
+
+        public char[] getEndArray() {
+            return byteArrayToCharArray(end);
+        }
+
+        public Set<Character> getEndSet()
+        {
+            Set<Character> endSet = new HashSet<Character>();
+
+            for (char c : byteArrayToCharArray(end)) {
+                endSet.add(c);
+                //System.out.println("Char: " + c);
+            }
+
+            return endSet;
+        }
+
+        public GNode[] getChildrenArray() {
+            return Arrays.copyOf(children, childPointer);
+        }
+
+        public char[] getArcs() {
+            return byteArrayToCharArray(arcs);
+        }
+
+        /**
+         * Method to convert a byte array to a char array.
+         * @param bytes Pass the byte array to be converted.
+         * @return char[] Returns a char array.
+         */
+        private char[] byteArrayToCharArray(byte[] bytes)
+        {
+            char[] out = new char[bytes.length];
+
+            for(int i = 0; i < bytes.length; i++)
+            {
+                out[i] = (char) bytes[i];
+            }
+
+            return out;
+        }
+
+        /**
+         * Method to ensure that there is enough space in an array for a new insertion
+         * @param array Pass the array to be checked
+         * @param targetIndex Pass the index at which you want to insert an item
+         * @return
+         */
+        private GNode[] checkArrayLength(GNode[] array, int targetIndex)
+        {
+
+            if (targetIndex >= array.length)
+            {
+                return Arrays.copyOf(array, array.length * 2);
+            }
+            return array;
+        }
+
+        /**
+         * Method to ensure that there is enough space in an array for a new insertion
+         * @param array Pass the array to be checked
+         * @param targetIndex Pass the index at which you want to insert an item
+         * @return
+         */
+        private byte[] checkArrayLength(byte[] array, int targetIndex)
+        {
+            //System.out.println("Target index: " + targetIndex);
+            //System.out.println("Array length: " + array.length);
+
+            if (Math.abs(targetIndex) >= array.length)  // If the target index lays outside of the current indices for the array
+            {
+                return Arrays.copyOf(array, array.length * 2); // Double the length
+            }
+
+            return array;
+        }
+
+        /**
+         * Method to search a byte array for a character
+         * @param array Pass the array to be searched
+         * @param targetChar Pass the target character
+         * @return boolean Returns true if the array contains the target character
+         */
+        private boolean arrayContainsChar(byte[] array, char targetChar)
+        {
+            byte targetByte = (byte) targetChar;
+
+            // Linear search for the byte version of the character
+            for (byte b : array)
+            {
+                if (b == targetByte)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /**
+         * Method to manipulate a character so it's only one byte instead of two.
+         * @param c Pass the character to be converted
+         * @return byte Returns a single byte representing the character
+         */
+        private byte charToByte(char c) {
+            return (byte) (c & 0x00FF);
+        }
+    }
+
+    class Move
+    {
+        ArrayList<Play> plays;
+
+        public Move()
+        {
+            plays = new ArrayList<>();
+        }
+
+        public Move(Move other)
+        {
+            this.plays = new ArrayList<>(other.plays);
+        }
+
+        public void addPlay(int x, int y, char c)
+        {
+            plays.add(new Play(x, y, c));
+        }
+
+        public void addPlay(Play p)
+        {
+            plays.add(p);
+        }
+    }
+
+    class Play
+    {
+        int r, c;
+        char letter;
+
+        public Play(int r, int c, char letter) {
+            this.r = r;
+            this.c = c;
+            this.letter = letter;
+        }
+
+        public int getR() {
+            return r;
+        }
+
+        public void setR(int r) {
+            this.r = r;
+        }
+
+        public int getC() {
+            return c;
+        }
+
+        public void setC(int c) {
+            this.c = c;
+        }
+
+        public char getLetter() {
+            return letter;
+        }
+
+        public void setLetter(char letter) {
+            this.letter = letter;
+        }
+    }
+
+
+    static class UtilityMethods
+    {
+        /**
+         * Method to reverse a String
+         * @param input Pass the input string to be reversed
+         * @return String Returns the input reversed.
+         */
+        public static String reverseString(String input)
+        {
+            return new StringBuilder(input).reverse().toString();
+        }
+
+        /**
+         * Method to generate a set containing every character in the alphabet
+         * @return Set Returns a set containing every character in the English alphabet
+         */
+        public static Set<Character> generateAlphabetSet()
+        {
+            HashSet<Character> alphabet = new HashSet<>();
+            String englishAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+            for(char c : englishAlphabet.toCharArray()) // Add all letters in the alphabet to the set
+            {
+                alphabet.add(c);
+            }
+
+            return alphabet;
+        }
+
+        public static boolean areEqual(Word w1, Word w2)
+        {
+            return (w1.getFirstColumn() == w2.getFirstColumn()) && (w1.getFirstRow() == w2.getFirstRow()) && (w1.isHorizontal() == w2.isHorizontal()) && (w1.getLetters().equals(w2.getLetters()));
+        }
+
+        public static ArrayList<Word> removeDuplicates(ArrayList<Word> list)
+        {
+            ArrayList<WordWithEquals> words = new ArrayList<>();
+            ArrayList<WordWithEquals> uniques = new ArrayList<>();
+
+            for(Word item : list)
+            {
+                words.add(new WordWithEquals(item));
+            }
+
+            for(WordWithEquals item : words)
+            {
+                if(!uniques.contains(item))
+                {
+                    uniques.add(item);
+                }
+            }
+
+            list.clear();
+
+            for(int i = 0; i < uniques.size(); i++)
+            {
+                list.add(uniques.get(i).w);
+            }
+
+            //System.out.println(uniques.size() + " should be < " + words.size());
+
+            //System.out.println("-------- ARE UNIQUE AFTER REMOVING DUPLICATES: " + StaticValueGenerator.areUnique(list));
+
+            return list;
+        }
+    }
+    
+
 }
