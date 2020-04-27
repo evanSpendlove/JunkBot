@@ -1,5 +1,5 @@
 
-import javafx.util.Pair;
+// import javafx.util.Pair;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -4127,7 +4127,6 @@ public class JunkBot implements BotAPI {
         }
     }
 
-
     static class UtilityMethods
     {
         /**
@@ -4196,7 +4195,7 @@ public class JunkBot implements BotAPI {
     }
 }
 
-/*
+
 class WordWithEquals
 {
     Word w;
@@ -4216,6 +4215,35 @@ class WordWithEquals
     @Override
     public int hashCode() {
         return Objects.hash(w.getFirstColumn(), w.getFirstRow(), w.getLetters(), w.isHorizontal(), w.getDesignatedLetters());
+    }
+}
+
+/*
+class Pair <K, V>
+{
+    K key;
+    V value;
+
+    public Pair(K key, V value)
+    {
+        this.key = key;
+        this.value = value;
+    }
+
+    public K getKey() {
+        return key;
+    }
+
+    public void setKey(K key) {
+        this.key = key;
+    }
+
+    public V getValue() {
+        return value;
+    }
+
+    public void setValue(V value) {
+        this.value = value;
     }
 }
 

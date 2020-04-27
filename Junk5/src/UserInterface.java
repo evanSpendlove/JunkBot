@@ -204,7 +204,8 @@ public class UserInterface implements UserInterfaceAPI {
                     scrabble.turnOver();
                 }
             }
-        } else if (!gameOver && (command.matches("EXCHANGE( )+([A-Z_]){1,7}") || command.matches("X( )+([A-Z_]){1,7}"))) {
+        }
+        else if (!gameOver && (command.matches("EXCHANGE( )+([A-Z_]){1,7}") || command.matches("X( )+([A-Z_]){1,7}"))) {
             String[] parts = command.split("( )+");
             String letters = parts[1];
             if (!currentPlayer.getFrame().isLegalExchange(scrabble.getPool(),letters)) {
@@ -230,6 +231,17 @@ public class UserInterface implements UserInterfaceAPI {
                 printChallengeFail();
                 scrabble.turnOver();
             } else {
+                ArrayList<Word> wordsPlaced = scrabble.getLatestWords();
+
+                for(Word w : wordsPlaced)
+                {
+                    ArrayList<Word> temp = new ArrayList<>();
+                    temp.add(w);
+                    if(!scrabble.getDictionary().areWords(temp))
+                    {
+                        System.out.println("INVALID WORDS: " + w);
+                    }
+                }
                 scrabble.undoPlay();
                 refreshBoard();
                 printChallengeSuccess();

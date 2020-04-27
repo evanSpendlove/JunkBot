@@ -6,7 +6,7 @@ import java.util.List;
 
 public class Bots {
 
-    private static final String[] ALL_BOT_NAMES = {"Bot0","Bot1"};
+    private static final String[] ALL_BOT_NAMES = {"JunkBot","Bot1"};
     private BotAPI[] bots = new BotAPI[Scrabble.NUM_PLAYERS];
 
     Bots(Scrabble scrabble, UserInterface ui, Application.Parameters parameters) {
