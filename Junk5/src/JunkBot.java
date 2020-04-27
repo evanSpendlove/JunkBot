@@ -1,5 +1,4 @@
 
-// import javafx.util.Pair;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -12,17 +11,19 @@ import java.util.zip.GZIPOutputStream;
     Members: Reuben Mulligan (18733589), Evan Spendlove (18492656), Cal Nolan(18355103)
  */
 
+/**
+ * Class for representing our Bot.
+ * Team: JunkBot
+ * Members: Reuben Mulligan (18733589), Evan Spendlove (18492656), Cal Nolan(18355103)
+ */
 public class JunkBot implements BotAPI {
 
-    // The public API of Bot must not change
-    // This is ONLY class that you can edit in the program
-    // Rename Bot to the name of your team. Use camel case.
-    // Bot may not alter the state of the game objects
-    // It may only inspect the state of the board and the player objects
-
     // Constants
-    public static final int NUM_BEST_WORDS = 21;
+    private static final int NUM_BEST_WORDS = 3;
+    private static final int MAX_PLAYOUT_ITERATIONS = 2;
+    private static final boolean DEBUG = false;
 
+    // API variables
     private PlayerAPI me;
     private OpponentAPI opponent;
     private BoardAPI board;
@@ -30,25 +31,24 @@ public class JunkBot implements BotAPI {
     private DictionaryAPI dictionary;
     private int turnCount;
 
-    private boolean shouldChallenge = false;
-    private boolean otherBotChallenges = false;
-    private boolean shouldUpdateBoard = false;
+    // Variables for holding game info
+    String lastTurnInfo;
+    String allInfo;
 
+    // Flags
+    private boolean shouldChallenge = false;
+    private boolean otherBotChallenges = false; // Potentially implement feature where bot will place all letters on frame continuously if the other bot doesn't challenge.
+    private boolean shouldUpdateBoard = false;
+    private boolean outOfTiles = false;
+    private boolean shouldPass = false;
+
+    // Private objects
     private PlayerObj meObj;
     private BoardObj boardObj;
     private FrameObj frameObj;
     private GADDAG gaddag;
     private MCTS mcts;
-
-    int gNodeCounter = 0;
-    int putCounter = 0;
-    int maxPutCounter = -1;
-    int branchCounter = 0;
-    int invalidPutCounter = 0;
-    boolean DEBUG = true;
-
-    String currentInfo;
-    String allInfo;
+    private Simulator sim;
 
     JunkBot(PlayerAPI me, OpponentAPI opponent, BoardAPI board, UserInterfaceAPI ui, DictionaryAPI dictionary) {
         this.me = me;
@@ -57,56 +57,476 @@ public class JunkBot implements BotAPI {
         this.info = ui;
         this.dictionary = dictionary;
         turnCount = 0;
+        this.lastTurnInfo = "";
+        this.allInfo = "";
     }
 
+    // Methods for submitting/placing a move
+
+    /**
+     * Method to submit a word to be placed on the actual board.
+     * @param w Pass the word to be placed.
+     */
+    private void submitWord(Word w)
+    {
+        placeWord(this.boardObj, this.frameObj, w);
+        turnCount++;
+        shouldUpdateBoard = true;
+    }
+
+    /**
+     * Method to place a word on a board
+     * @param b Pass the board
+     * @param f Pass the frame of the player placing the word
+     * @param w Pass the word to be placed
+     */
+    private void placeWord(BoardObj b, FrameObj f, Word w)
+    {
+        w = correctBlanks(b, f, w); // Correct the word if it includes blanks
+        b.place(f, w); // Place word
+    }
+
+    /**
+     * Method to correct any blanks in a word.
+     * @param b Pass the board on which the word would be played.
+     * @param frame Pass the frame associated with the word
+     * @param w Pass the word to be corrected
+     * @return Word Returns the word corrected for blanks
+     */
+    private static Word correctBlanks(BoardObj b, FrameObj frame, Word w)
+    {
+        FrameObj f = frame.deepCopy();
+
+        if(DEBUG)
+        {
+            System.out.println("Frame: " + frame);
+            System.out.println("Frame copy: " + f);
+            System.out.println("Word: " + w);
+        }
+
+        if(!f.isAvailable(w.getLetters()))
+        {
+            boolean containsBlank = false;
+            char[] blanks = new char[7];
+            int pointer = 0;
+            StringBuilder lettersWithBlanks = new StringBuilder();
+
+            if(w.isHorizontal())
+            {
+                for(int i = 0; i < w.length(); i++)
+                {
+                    if(b.squareIsOccupied(w.getFirstRow(), w.getFirstColumn() + i)) // If hook, ignore
+                    {
+                        if(DEBUG)
+                        {
+                            System.out.println("--> IS HOOK: " + w.getLetter(i) + ", Row: " + w.getFirstRow() + ", Col: " + (w.getFirstColumn() + i));
+                        }
+                        lettersWithBlanks.append(w.getLetter(i));
+                    }
+                    else if(f.isAvailable(w.getLetter(i) + "")) // If available, remove tile and append letter
+                    {
+                        if(DEBUG)
+                        {
+                            System.out.println("CONTAINED: " + w.getLetter(i));
+                        }
+                        f.removeTile(new Tile(w.getLetter(i)));
+                        lettersWithBlanks.append(w.getLetter(i));
+                    }
+                    else if(f.isAvailable("_")) // Else if blank tile available
+                    {
+                        if(DEBUG)
+                        {
+                            System.out.println("SWITCHED FOR BLANK: " + w.getLetter(i));
+                        }
+                        f.removeTile(new Tile('_'));
+                        containsBlank = true;
+                        blanks[pointer++] = w.getLetter(i);
+                        lettersWithBlanks.append("_");
+                    }
+                    else
+                    {
+                        if(DEBUG)
+                        {
+                            System.out.println("Frame: " + f);
+                            System.out.println("LETTER NOT CONTAINED: " + w.getLetter(i));
+                        }
+                        throw new IllegalArgumentException("INVALID STATE, NO BLANKS AND LETTER NOT CONTAINED");
+                    }
+                }
+            }
+            else
+            {
+                for(int i = 0; i < w.length(); i++)
+                {
+                    if(b.squareIsOccupied(w.getFirstRow() + i, w.getFirstColumn())) // If hook, ignore
+                    {
+                        if(DEBUG)
+                        {
+                            System.out.println("--> IS HOOK: " + w.getLetter(i) + ", Row: " + (w.getFirstRow() + i)+ ", Col: " + w.getFirstColumn());
+                        }
+                        lettersWithBlanks.append(w.getLetter(i));
+                    }
+                    else if(f.isAvailable(w.getLetter(i) + "")) // If available, remove tile and append letter
+                    {
+                        if(DEBUG)
+                        {
+                            System.out.println("CONTAINED: " + w.getLetter(i));
+                        }
+                        f.removeTile(new Tile(w.getLetter(i)));
+                        lettersWithBlanks.append(w.getLetter(i));
+                    }
+                    else if(f.isAvailable("_")) // Else if blank tile available
+                    {
+                        if(DEBUG)
+                        {
+                            System.out.println("SWITCHED FOR BLANK: " + w.getLetter(i));
+                        }
+                        f.removeTile(new Tile('_'));
+                        containsBlank = true;
+                        blanks[pointer++] = w.getLetter(i);
+                        lettersWithBlanks.append("_");
+                    }
+                    else
+                    {
+                        if(DEBUG)
+                        {
+                            System.out.println("Frame: " + f);
+                            System.out.println("LETTER NOT CONTAINED: " + w.getLetter(i));
+                        }
+                        throw new IllegalArgumentException("INVALID STATE, NO BLANKS AND LETTER NOT CONTAINED");
+                    }
+                }
+            }
+
+            //return new Word(w.getFirstRow(), w.getFirstColumn(), w.isHorizontal(), lettersWithBlanks.toString());
+            return new Word(w.getFirstRow(), w.getFirstColumn(), w.isHorizontal(), lettersWithBlanks.toString(), new String(blanks));
+        }
+        else
+        {
+            return w;
+        }
+    }
+
+    /**
+     * Method to adjust a word so that it is playable through the API
+     * @param b Board
+     * @param frame Frame
+     * @param w Word
+     * @return Word Returns the word corrected.
+     */
+    private static Word fillInBlanks(BoardObj b, FrameObj frame, Word w)
+    {
+        FrameObj f = frame.deepCopy();
+
+        if(DEBUG)
+        {
+            System.out.println("Frame: " + frame);
+            System.out.println("Frame copy: " + f);
+            System.out.println("Word: " + w);
+        }
+
+        if(!f.isAvailable(w.getLetters()))
+        {
+            boolean containsBlank = false;
+            char[] blanks = new char[7];
+            int pointer = 0;
+            StringBuilder lettersWithBlanks = new StringBuilder();
+
+            if(w.isHorizontal())
+            {
+                for(int i = 0; i < w.length(); i++)
+                {
+                    if(b.squareIsOccupied(w.getFirstRow(), w.getFirstColumn() + i)) // If hook, ignore
+                    {
+                        if(DEBUG)
+                        {
+                            System.out.println("--> IS HOOK: " + w.getLetter(i) + ", Row: " + w.getFirstRow() + ", Col: " + (w.getFirstColumn() + i));
+                        }
+                        lettersWithBlanks.append(w.getLetter(i));
+                    }
+                    else if(f.isAvailable(w.getLetter(i) + "")) // If available, remove tile and append letter
+                    {
+                        if(DEBUG)
+                        {
+                            System.out.println("CONTAINED: " + w.getLetter(i));
+                        }
+                        f.removeTile(new Tile(w.getLetter(i)));
+                        lettersWithBlanks.append(w.getLetter(i));
+                    }
+                    else if(f.isAvailable("_")) // Else if blank tile available
+                    {
+                        if(DEBUG)
+                        {
+                            System.out.println("SWITCHED FOR BLANK: " + w.getLetter(i));
+                        }
+                        f.removeTile(new Tile('_'));
+                        containsBlank = true;
+                        blanks[pointer++] = w.getLetter(i);
+                        lettersWithBlanks.append("_");
+                    }
+                    else
+                    {
+                        if(DEBUG)
+                        {
+                            System.out.println("Frame: " + f);
+                            System.out.println("LETTER NOT CONTAINED: " + w.getLetter(i));
+                        }
+                        throw new IllegalArgumentException("INVALID STATE, NO BLANKS AND LETTER NOT CONTAINED");
+                    }
+                }
+            }
+            else
+            {
+                for(int i = 0; i < w.length(); i++)
+                {
+                    if(b.squareIsOccupied(w.getFirstRow() + i, w.getFirstColumn())) // If hook, ignore
+                    {
+                        if(DEBUG)
+                        {
+                            System.out.println("--> IS HOOK: " + w.getLetter(i) + ", Row: " + (w.getFirstRow() + i)+ ", Col: " + w.getFirstColumn());
+                        }
+                        lettersWithBlanks.append(w.getLetter(i));
+                    }
+                    else if(f.isAvailable(w.getLetter(i) + "")) // If available, remove tile and append letter
+                    {
+                        if(DEBUG)
+                        {
+                            System.out.println("CONTAINED: " + w.getLetter(i));
+                        }
+                        f.removeTile(new Tile(w.getLetter(i)));
+                        lettersWithBlanks.append(w.getLetter(i));
+                    }
+                    else if(f.isAvailable("_")) // Else if blank tile available
+                    {
+                        if(DEBUG)
+                        {
+                            System.out.println("SWITCHED FOR BLANK: " + w.getLetter(i));
+                        }
+                        f.removeTile(new Tile('_'));
+                        containsBlank = true;
+                        blanks[pointer++] = w.getLetter(i);
+                        lettersWithBlanks.append("_");
+                    }
+                    else
+                    {
+                        if(DEBUG)
+                        {
+                            System.out.println("Frame: " + f);
+                            System.out.println("LETTER NOT CONTAINED: " + w.getLetter(i));
+                        }
+                        throw new IllegalArgumentException("INVALID STATE, NO BLANKS AND LETTER NOT CONTAINED");
+                    }
+                }
+            }
+
+            return new Word(w.getFirstRow(), w.getFirstColumn(), w.isHorizontal(), lettersWithBlanks.toString());
+            //return new Word(w.getFirstRow(), w.getFirstColumn(), w.isHorizontal(), lettersWithBlanks.toString(), new String(blanks));
+        }
+        else
+        {
+            return w;
+        }
+    }
+
+    /**
+     * Method to find the blanks in a word
+     * @param b Board
+     * @param frame Frame
+     * @param w Word
+     * @return String Returns the required letters (in order) to fill the blanks in the word.
+     */
+    private String findBlanksInWord(BoardObj b, FrameObj frame, Word w)
+    {
+        FrameObj f = frame.deepCopy();
+
+        if(DEBUG)
+        {
+            System.out.println("Frame: " + frame);
+            System.out.println("Frame copy: " + f);
+            System.out.println("Word: " + w);
+        }
+
+        if(!f.isAvailable(w.getLetters()))
+        {
+            boolean containsBlank = false;
+            char[] blanks = new char[7];
+            int pointer = 0;
+            StringBuilder lettersWithBlanks = new StringBuilder();
+
+            if(w.isHorizontal())
+            {
+                for(int i = 0; i < w.length(); i++)
+                {
+                    if(b.squareIsOccupied(w.getFirstRow(), w.getFirstColumn() + i)) // If hook, ignore
+                    {
+                        lettersWithBlanks.append(w.getLetter(i));
+                    }
+                    else if(f.isAvailable(w.getLetter(i) + "")) // If available, remove tile and append letter
+                    {
+                        f.removeTile(new Tile(w.getLetter(i)));
+                        lettersWithBlanks.append(w.getLetter(i));
+                    }
+                    else if(f.isAvailable("_")) // Else if blank tile available
+                    {
+                        f.removeTile(new Tile('_'));
+                        containsBlank = true;
+                        blanks[pointer++] = w.getLetter(i);
+                        lettersWithBlanks.append("_");
+                    }
+                    else
+                    {
+                        if(DEBUG)
+                        {
+                            System.out.println("Frame: " + f);
+                            System.out.println("LETTER NOT CONTAINED: " + w.getLetter(i));
+                        }
+                        throw new IllegalArgumentException("INVALID STATE, NO BLANKS AND LETTER NOT CONTAINED");
+                    }
+                }
+            }
+            else
+            {
+                for(int i = 0; i < w.length(); i++)
+                {
+                    if(b.squareIsOccupied(w.getFirstRow() + i, w.getFirstColumn())) // If hook, ignore
+                    {
+                        if(DEBUG)
+                        {
+                            System.out.println("--> IS HOOK: " + w.getLetter(i) + ", Row: " + (w.getFirstRow() + i)+ ", Col: " + w.getFirstColumn());
+                        }
+                        lettersWithBlanks.append(w.getLetter(i));
+                    }
+                    else if(f.isAvailable(w.getLetter(i) + "")) // If available, remove tile and append letter
+                    {
+                        if(DEBUG)
+                        {
+                            System.out.println("CONTAINED: " + w.getLetter(i));
+                        }
+                        f.removeTile(new Tile(w.getLetter(i)));
+                        lettersWithBlanks.append(w.getLetter(i));
+                    }
+                    else if(f.isAvailable("_")) // Else if blank tile available
+                    {
+                        if(DEBUG)
+                        {
+                            System.out.println("SWITCHED FOR BLANK: " + w.getLetter(i));
+                        }
+                        System.out.println("SWITCHED FOR BLANK: " + w.getLetter(i));
+                        f.removeTile(new Tile('_'));
+                        containsBlank = true;
+                        blanks[pointer++] = w.getLetter(i);
+                        lettersWithBlanks.append("_");
+                        System.out.println("LETTER SWITCHED: " + w.getLetter(i));
+                        System.out.println("Blanks: " + new String(blanks));
+                    }
+                    else
+                    {
+                        if(DEBUG)
+                        {
+                            System.out.println("Frame: " + f);
+                            System.out.println("LETTER NOT CONTAINED: " + w.getLetter(i));
+                        }
+                        throw new IllegalArgumentException("INVALID STATE, NO BLANKS AND LETTER NOT CONTAINED");
+                    }
+                }
+            }
+
+            System.out.println("Blanks: " + new String(blanks));
+
+            if(containsBlank)
+            {
+                return new String(blanks);
+            }
+            else
+            {
+                return "";
+            }
+        }
+        else
+        {
+            return "";
+        }
+    }
+
+    /**
+     * Method for converting a word into a command for interacting with API
+     * @param w Pass the word to be converted
+     * @return String Returns the string form of the word.
+     */
+    private String wordToCommand(Word w)
+    {
+        String blanks = findBlanksInWord(this.boardObj, this.frameObj, w);
+        w = fillInBlanks(this.boardObj, this.frameObj, w);
+
+        int row = w.getFirstRow();
+        int col = w.getFirstColumn();
+        char direction = w.isHorizontal() ? 'A' : 'D';
+
+        row++;
+
+        char colChar = (char) ('A' + col);
+
+        String command = "" + colChar + row + " " + direction + " " + w.getLetters();
+
+
+        if(!blanks.equals(""))
+        {
+            command += " " + blanks;
+        }
+
+        return command;
+    }
+
+    /**
+     * Method to get the command of this bot for this turn
+     * @return String Returns the command in String format
+     */
     public String getCommand()
     {
-        System.out.println("NEW TURN");
-        // Add your code here to input your commands
-        // Your code must give the command NAME <botname> at the start of the game
-
         // PRE-COMPUTATION
-
 
         LeaveValues.initialise();
 
-        boardObj = parseBoardFromAPI();
-        frameObj = parseFrameFromString(me.getFrameAsString());
-
-        System.out.println("CURRENT FRAME\n" + frameObj.toString());
-        System.out.println("CURRENT BOARD\n" + boardObj.toString());
-        System.out.flush();
-
-        /*
-        for(int i = 0; i < LeaveValues.leaveMaps.size(); i++)
-        {
-            if(LeaveValues.leaveMaps.get(i).size() > 0)
-            {
-                System.out.println("MAP " + i + " CORRECTLY READ IN, SIZE: " + LeaveValues.leaveMaps.get(i).size());
-            }
-        }
-
-         */
-
+        // If the beginning of the game
         if(turnCount == 0)
         {
+            // Initialise objects
             this.meObj = new PlayerObj(me);
             this.boardObj = parseBoardFromAPI();
             this.frameObj = parseFrameFromString(me.getFrameAsString());
             this.gaddag = new GADDAG();
-            this.mcts = new MCTS(boardObj, new PlayerObj(me), new PlayerObj(opponent));
+            this.sim = new Simulator();
+            // this.mcts = new MCTS(boardObj, new PlayerObj(me), new PlayerObj(opponent)); // Deprecated
+
+            allInfo = info.getAllInfo();
 
             turnCount++;
             shouldUpdateBoard = false;
             return "NAME JUNKBOT \n";
         }
 
-        if(shouldUpdateBoard)
+        // GET INFO FROM API
+
+        parseCurrentInfo(); // Parse game info from API
+
+        this.frameObj = parseFrameFromString(me.getFrameAsString()); // Update frame
+
+        if(shouldUpdateBoard) // If played a move last turn
         {
-            updateLastTurn();
+            updateLastTurn(); // Update last turn
         }
 
-        if(shouldChallenge)
+        // CHECK FLAGS FOR ALTERNATIVE COMMANDS
+
+        if(shouldPass) // If shouldPass flag is set, then pass this turn
+        {
+            shouldPass = false;
+            shouldUpdateBoard = true;
+            turnCount++;
+            return "PASS";
+        }
+
+        if(shouldChallenge) // If shouldChallenge flag is set, then challenge
         {
             shouldChallenge = false;
             shouldUpdateBoard = false;
@@ -114,268 +534,71 @@ public class JunkBot implements BotAPI {
             return "CHALLENGE";
         }
 
-        //turnCount++;
-
-
-        // Static testing
-        /*
-        this.frameObj.getTiles().clear();
-
-        ArrayList<Tile> tiles = new ArrayList<>();
-
-        tiles.add(new Tile('H'));
-        tiles.add(new Tile('T'));
-        tiles.add(new Tile('T'));
-        tiles.add(new Tile('Y'));
-        tiles.add(new Tile('O'));
-        tiles.add(new Tile('U'));
-        tiles.add(new Tile('I'));
-
-        this.frameObj.addTiles(tiles);
-
-         */
-
-        System.out.println("Current frame: " + frameObj.toString());
-
-        ArrayList<Word> words = getAllPossibleMoves(this.boardObj, this.frameObj);
-        System.out.println("Words length: " + words.size());
-        System.out.println("Turn count: " + turnCount);
-
-        /*
-        System.out.println("PUT COUNTER: " + putCounter);
-        System.out.println("MAX Put: " + maxPutCounter);
-        System.out.println("BRANCH COUNTER: " + branchCounter);
-        System.out.println("INVALID PUT COUNTER " + invalidPutCounter);
-
-         */
-
-        String testWord = "";
-
-        for(int i = 0; i < 3; i++)
-        {
-            testWord += frameObj.getTiles().get(i);
-        }
-
-        System.out.println("Legal? " + boardObj.isLegalPlay(frameObj, new Word(7, 7, true, testWord)));
-
-        if(boardObj.isLegalPlay(frameObj, new Word(7, 7, true, testWord)))
-        {
-            boardObj.deepCopy().place(frameObj.deepCopy(), new Word(7, 7, true, testWord));
-        }
-
-        FrameObj testBlanks = new FrameObj();
-        ArrayList<Tile> blankTestTiles = new ArrayList<>();
-
-        for(int i = 0; i < 6; i++)
-        {
-            blankTestTiles.add(new Tile('E'));
-        }
-
-        blankTestTiles.add(new Tile('_'));
-
-        testBlanks.addTiles(blankTestTiles);
-
-        // To convert, find the missing letters, and replace them in the string with '_' while keeping them in a dif string to pass
-        Word testBlankWord = new Word(7, 7, true, "_EE", "S");
-
-        System.out.println("Legal? " + boardObj.isLegalPlay(testBlanks, testBlankWord));
-
-        /*
-        for(int i = 0; i < words.size(); i++)
-        {
-            System.out.println(words.get(i));
-            ArrayList<Word> w = new ArrayList<>();
-            w.add(words.get(i));
-            System.out.println(dictionary.areWords(w));
-        }
-
-         */
-
-        if(!dictionary.areWords(words))
-        {
-            System.out.println("PROBLEM!");
-        }
-        else
-        {
-            System.out.println("ALL VALID WORDS");
-        }
-
-        // ------------- MCTS TESTING BEGINS
-
-        BoardObj testBoard = boardObj.deepCopy();
-        FrameObj testFrame = frameObj.deepCopy();
-
-        ArrayList<Word> wordsToTest = getAllPossibleMoves(testBoard, testFrame);
-
-        System.out.println("WTT Length: " + wordsToTest.size());
-        System.out.println("Are unique: " + StaticValueGenerator.areUnique(wordsToTest));
-
-        for(int i = 0; i < 5 && wordsToTest.size() > 5; i++)
-        {
-            System.out.println("Word (" + i + ") : " + wordsToTest.get(i) + " || " + StaticValueGenerator.generateStaticValuation(testBoard, wordsToTest.get(i), testFrame));
-        }
-
-        for(int i = 0; i < 5 && wordsToTest.size() > 5; i++)
-        {
-            System.out.println("Word (" + i + ") : " + wordsToTest.get(i) + " || " + StaticValueGenerator.generateStaticValuation(testBoard, wordsToTest.get(i), testFrame));
-        }
-
-        wordsToTest = StaticValueGenerator.sortWordsByValue(testBoard, testFrame, wordsToTest);
-
-        System.out.println("POST SORTED::\n");
-
-        for(int i = 0; i < 5 && wordsToTest.size() > 5; i++)
-        {
-            System.out.println("Word (" + i + ") : " + wordsToTest.get(i) + " || " + StaticValueGenerator.generateStaticValuation(testBoard, wordsToTest.get(i), testFrame));
-        }
-
-        double value = StaticValueGenerator.generateStaticValuation(testBoard, wordsToTest.get(0), testFrame);
-
-        System.out.println("VALUE OF WORD 1: " +value);
-
-        System.out.println("---- WORD 1 GENERATED: " + wordsToTest.get(0));
-
-        System.out.println("IS LEGAL: "+ testBoard.isLegalPlay(testFrame, wordsToTest.get(0)));
-
-        if(!testBoard.isLegalPlay(testFrame, wordsToTest.get(0)))
+        if(outOfTiles) // If out of tiles flag is set, then PASS
         {
             return "PASS";
         }
 
-        testBoard.place(testFrame, wordsToTest.get(0));
 
-        System.out.println("WORD 1 PLACED\n" + testBoard.toString());
+        long startShortMCTS = System.nanoTime();
 
-        int row = wordsToTest.get(0).getFirstRow();
-        int col = wordsToTest.get(0).getFirstColumn();
-        char direction = wordsToTest.get(0).isHorizontal() ? 'A' : 'D';
+        Word bestWordShort = sim.generateOptimalWord(boardObj, meObj, new PlayerObj(opponent));
 
-        row++;
+        long endShortMCTS = System.nanoTime();
 
-        char colChar = (char) ('A' + col);
+        System.out.println("Best short word: " + bestWordShort);
+        System.out.println("Short time: " + (endShortMCTS - startShortMCTS));
 
-        String command1 = "" + colChar + row + " " + direction + " " + wordsToTest.get(0).getLetters();
+        String command = wordToCommand(bestWordShort);
 
-        for(int i = 0; i < wordsToTest.get(0).length(); i++)
-        {
-            int col2 = wordsToTest.get(0).getFirstColumn();
-            if(wordsToTest.get(0).isHorizontal()) // Column changes
-            {
-                col2 += i;
-                char colString = (char) ('A' + col2);
-                System.out.println("Tile: " + wordsToTest.get(0).getLetter(i) + " | C: " + colString + " | R: " + (wordsToTest.get(0).getFirstRow()));
-            }
-            else
-            {
-                char colString = (char) ('A' + col2);
-                System.out.println("Tile: " + wordsToTest.get(0).getLetter(i) + " | C: " + colString + " | R: " + (wordsToTest.get(0).getFirstRow() + i));
-            }
-        }
+        submitWord(bestWordShort);
 
-        System.out.println("Command: " + command1);
-
-        turnCount++;
-        shouldUpdateBoard = true;
-
-        return command1;
-
-        /*
-
-        System.out.println("\n\n WORD 2 GENERATION BEGINS\n");
-
-        testFrame.refill(new Pool());
-
-        wordsToTest = getAllPossibleMoves(testBoard, testFrame);
-
-        wordsToTest = StaticValueGenerator.sortWordsByValue(testBoard, testFrame, wordsToTest);
-
-        for(int i = 0; i < 5 && wordsToTest.size() > 5; i++)
-        {
-            System.out.println("Word (" + i + ") : " + wordsToTest.get(i) + " || " + StaticValueGenerator.generateStaticValuation(testBoard, wordsToTest.get(i), testFrame));
-        }
-
-        System.out.println("---- WORD 2 GENERATED: " + wordsToTest.get(0));
-
-        testBoard.place(testFrame, wordsToTest.get(0));
-
-        System.out.println("WORD 2 PLACED\n" + testBoard.toString());
-
-        System.out.println("--- MOVE GENERATION FINISHED --- ");
-
-        //System.out.println("Best word: " + mcts.generateOptimalMove(boardObj, meObj, new PlayerObj(opponent)));
+        System.out.println(boardObj.toString());
+        System.out.println("Command: " + command);
 
         System.out.flush();
-
-
-        String command = "";
-        switch (turnCount) {
-            case 1:
-                command = "PASS";
-                shouldUpdateBoard = true;
-                break;
-            case 2:
-                command = "HELP";
-                shouldUpdateBoard = false;
-                break;
-            case 3:
-                command = "SCORE";
-                shouldUpdateBoard = false;
-                break;
-            case 4:
-                command = "POOL";
-                shouldUpdateBoard = false;
-                break;
-            default:
-                command = "H8 A AN";
-                shouldUpdateBoard = true;
-                break;
-        }
-        turnCount++;
         return command;
-
-         */
     }
 
     // Additional methods for interfacing with the APIs
 
-    protected ArrayList<Word> getAllPossibleMoves(BoardObj b, FrameObj f)
-    {
-        b.updateAnchors();
-        b.computeCrossSets(b, gaddag.getRoot());
-        return UtilityMethods.removeDuplicates(gaddag.getAllWords(gaddag.getRoot(), f, b));
-    }
-
     protected FrameObj parseFrameFromString(String input)
     {
-        ArrayList<Tile> tiles = new ArrayList<>();
 
-        int offset = 1;
-        int multiplier = 3;
-
-        for(int i = 0; i < 7; i++)
+        if(input.length() > 2)
         {
-            tiles.add(new Tile(input.charAt(offset + (i * multiplier))));
+            ArrayList<Tile> tiles = new ArrayList<>();
+
+            int offset = 1;
+            int multiplier = 3;
+
+            for(int i = 0; i < 7 && (offset + (i * multiplier)) < input.length(); i++)
+            {
+                tiles.add(new Tile(input.charAt(offset + (i * multiplier))));
+            }
+
+            FrameObj frame = new FrameObj();
+            frame.addTiles(tiles);
+
+            return frame;
         }
-
-        FrameObj frame = new FrameObj();
-        frame.addTiles(tiles);
-
-        return frame;
+        else
+        {
+            outOfTiles = true;
+            return null;
+        }
     }
 
     protected BoardObj parseBoardFromAPI()
     {
         SquareObj[][] squares = new SquareObj[Board.BOARD_SIZE][Board.BOARD_SIZE];
 
-        System.out.println("--- READING FROM API ---\n");
         for(int i = 0; i < Board.BOARD_SIZE; i++)
         {
             for(int j = 0; j < Board.BOARD_SIZE; j++)
             {
-                squares[i][j] = new SquareObj(board.getSquareCopy(i,j));
-                System.out.print(board.getSquareCopy(i, j).toString() + " ");
+                squares[j][i] = new SquareObj(board.getSquareCopy(i,j));
             }
-            System.out.println();
         }
 
         if(this.boardObj == null)
@@ -389,49 +612,72 @@ public class JunkBot implements BotAPI {
 
     private void updateLastTurn()
     {
+        this.meObj = new PlayerObj(me);
+
         parseCurrentInfo();
 
-        String oppMove = parseMoveFromNewInfo(currentInfo);
+        String oppMove = parseMoveFromNewInfo(lastTurnInfo);
 
-        System.out.println("Opp move: " + oppMove);
-
-        int moveCode = processPlay(oppMove);
-
-        if(moveCode == 2)
+        if(!lastTurnInfo.contains("Error: "))
         {
-            // Get the word played
-            Word w = parsePlay(oppMove);
-            System.out.println("Word played: " + w);
+            System.out.println("Opp move: " + oppMove);
 
-            ArrayList<Word> words = new ArrayList<>();
-            words.add(w);
+            int moveCode = processPlay(oppMove);
 
-            // Check if we should challenge the word
-            if(!dictionary.areWords(words))
+            if(moveCode == 2)
             {
-                shouldChallenge = true;
+                // Get the word played
+                Word w = parsePlay(oppMove);
+                System.out.println("Word played: " + w);
+
+                ArrayList<Word> words = new ArrayList<>();
+                words.add(w);
+
+                // Check if we should challenge the word
+                if(!dictionary.areWords(words))
+                {
+                    shouldChallenge = true;
+                }
+                else
+                {
+                    boardObj.placeCheat(w); // Update board with new move.
+                }
             }
-            else
+
+            if(moveCode == 3)
             {
-                boardObj.placeCheat(w); // Update board with new move.
+                otherBotChallenges = true;
             }
         }
-
-        if(moveCode == 3)
+        else
         {
-            otherBotChallenges = true;
+            shouldPass = true;
         }
     }
 
     protected void parseCurrentInfo()
     {
-        String newInfo = info.getAllInfo();
 
-        newInfo.replaceAll(newInfo, "");
+        StringBuilder newInfo = new StringBuilder();
+        newInfo.append(info.getAllInfo());
+        String prevInfo = lastTurnInfo;
 
-        allInfo = info.getAllInfo();
+        //System.out.println("New info length: " + newInfo.length());
+        //System.out.println("Prev turn length: " + prevInfo.length());
 
-        currentInfo = newInfo;
+        if(newInfo.toString().equals(prevInfo))
+        {
+           return;
+        }
+
+        //System.out.println("Desired length: " + (newInfo.length() - prevInfo.length()));
+
+        //newInfo.replace(0, lastTurnInfo.length(), "");
+        //System.out.println("Replaced: " + newInfo.length());
+        //System.out.println("Replaced: " + newInfo);
+        //System.out.println("Original: " + info.getAllInfo());
+
+        lastTurnInfo = newInfo.toString();
     }
 
     protected String parseMoveFromNewInfo(String newInfo)
@@ -477,7 +723,7 @@ public class JunkBot implements BotAPI {
             return 1;
         }
         else if ((command.matches("[A-O](\\d){1,2}( )+[A,D]( )+([A-Z]){1,15}") ||                // no blanks
-                (command.matches("[A-O](\\d){1,2}( )+[A,D]( )+([A-Z_]){1,17}( )+([A-Z]){1,2}"))))
+                        (command.matches("[A-O](\\d){1,2}( )+[A,D]( )+([A-Z_]){1,17}( )+([A-Z]){1,2}"))))
         {
             // no blanks
             return 2;
@@ -516,6 +762,116 @@ public class JunkBot implements BotAPI {
         return word;
     }
 
+    // Method for playing the game
+
+    /**
+     * Method to get all possible moves on a board
+     * @param b Pass the board
+     * @param f Pass the current frame
+     * @return ArrayList Returns an ArrayList of Words
+     */
+    protected ArrayList<Word> getAllPossibleMoves(BoardObj b, FrameObj f)
+    {
+        b.updateAnchors(); // Update anchors on the board
+        b.updateCrossSets(gaddag.getRoot()); // Update the cross sets
+        return UtilityMethods.removeDuplicates(gaddag.getAllWords(gaddag.getRoot(), f, b)); // Remove any duplicates from the list returned
+    }
+
+    // Methods for testing the game
+
+    private void makeFrameStatic()
+    {
+
+        this.frameObj.getTiles().clear();
+
+        ArrayList<Tile> tiles = new ArrayList<>();
+
+        tiles.add(new Tile('H'));
+        tiles.add(new Tile('T'));
+        tiles.add(new Tile('T'));
+        tiles.add(new Tile('Y'));
+        tiles.add(new Tile('O'));
+        tiles.add(new Tile('U'));
+        tiles.add(new Tile('I'));
+
+        this.frameObj.addTiles(tiles);
+
+
+    }
+
+    private void testBlankPlacement()
+    {
+        String testWord = "";
+
+        for(int i = 0; i < 3 && frameObj.getTiles().size() > 3; i++)
+        {
+            testWord += frameObj.getTiles().get(i);
+        }
+
+        System.out.println("Legal? " + boardObj.isLegalPlay(frameObj, new Word(7, 7, true, testWord)));
+
+        if(boardObj.isLegalPlay(frameObj, new Word(7, 7, true, testWord)))
+        {
+            boardObj.deepCopy().place(frameObj.deepCopy(), new Word(7, 7, true, testWord));
+        }
+
+        FrameObj testBlanks = new FrameObj();
+        ArrayList<Tile> blankTestTiles = new ArrayList<>();
+
+        for(int i = 0; i < 6; i++)
+        {
+            blankTestTiles.add(new Tile('E'));
+        }
+
+        blankTestTiles.add(new Tile('_'));
+
+        testBlanks.addTiles(blankTestTiles);
+
+        // To convert, find the missing letters, and replace them in the string with '_' while keeping them in a dif string to pass
+        Word testBlankWord = new Word(7, 7, true, "SEE");
+
+        System.out.println("Legal? " + boardObj.isLegalPlay(testBlanks, correctBlanks(boardObj, testBlanks, testBlankWord)));
+
+    }
+
+    private void validateWordsGenerated()
+    {
+        ArrayList<Word> words = getAllPossibleMoves(this.boardObj, this.frameObj);
+
+        if(!dictionary.areWords(words))
+        {
+            System.out.println("PROBLEM!");
+        }
+        else
+        {
+            System.out.println("ALL VALID WORDS");
+        }
+    }
+
+    private void validateWordsGenerated(ArrayList<Word> words)
+    {
+
+        if(!dictionary.areWords(words))
+        {
+            System.out.println("PROBLEM!");
+        }
+        else
+        {
+            System.out.println("ALL VALID WORDS");
+        }
+    }
+
+    private void validatePlacingOfWords()
+    {
+        ArrayList<Word> words = getAllPossibleMoves(this.boardObj, this.frameObj);
+
+        for(int i = 0; i < words.size(); i++)
+        {
+            this.boardObj.deepCopy().place(this.frameObj.deepCopy(), words.get(i));
+            //StaticValueGenerator.generateStaticValuation(this.boardObj, words.get(i), this.frameObj);
+        }
+    }
+
     // Additional game model classes with extended functionality
 
     /**
@@ -527,6 +883,7 @@ public class JunkBot implements BotAPI {
         public boolean[] horizontalCrossSet;
         public boolean[] verticalCrossSet;
 
+        // Constructor which copies a square obtained from the API
         public SquareObj(Square square)
         {
             super(square.getLetterMuliplier(), square.getWordMultiplier());
@@ -550,6 +907,7 @@ public class JunkBot implements BotAPI {
             isAnchor = false;
         }
 
+        // Constructor which copies the square passed
         public SquareObj(SquareObj square)
         {
             super(square.getLetterMuliplier(), square.getWordMultiplier());
@@ -619,18 +977,12 @@ public class JunkBot implements BotAPI {
 
         public void clearVerticalCrossSet()
         {
-            for(boolean b : verticalCrossSet)
-            {
-                b = false;
-            }
+            Arrays.fill(verticalCrossSet, false);
         }
 
         public void clearHorizontalCrossSet()
         {
-            for(boolean b : horizontalCrossSet)
-            {
-                b = false;
-            }
+            Arrays.fill(horizontalCrossSet, false);
         }
 
         public void addValidVertical(char c)
@@ -687,6 +1039,32 @@ public class JunkBot implements BotAPI {
             {
                 throw new IllegalArgumentException("Invalid character index conversion.");
             }
+        }
+
+        public int verticalSize()
+        {
+            int size = 0;
+
+            for (boolean b : verticalCrossSet) {
+                if (b) {
+                    size++;
+                }
+            }
+
+            return size;
+        }
+
+        public int horizontalSize()
+        {
+            int size = 0;
+
+            for (boolean b : horizontalCrossSet) {
+                if (b) {
+                    size++;
+                }
+            }
+
+            return size;
         }
 
         @Override public String toString()
@@ -1015,18 +1393,47 @@ public class JunkBot implements BotAPI {
             return points;
         }
 
-        public SquareObj getSquare(int row, int col) {
-            if(row >= BOARD_SIZE || col >= BOARD_SIZE || row < 0 || col < 0)
-                return new SquareObj(1, 1);
-            return squares[row][col];
-        }
-
         public boolean isFirstPlay() {
             return numPlays == 0;
         }
 
         // Additional methods added
 
+        /**
+         * Method to get a square from the board
+         * @param row Pass the row of the square
+         * @param col Pass the column of the square
+         * @return SquareObj Returns the square at [row][col]
+         */
+        public SquareObj getSquare(int row, int col)
+        {
+            if(row >= BOARD_SIZE || col >= BOARD_SIZE || row < 0 || col < 0) // If out of bounds
+                return new SquareObj(1, 1); // Return default, empty square
+            return squares[row][col];
+        }
+
+        /**
+         * Utility Method to get the letter from a specific square
+         * @param row Pass the row of the square
+         * @param col Pass the column of the square
+         * @return char Returns the character (letter) of the tile on the square.
+         */
+        public char getLetter(int row, int col)
+        {
+            if(this.squares[row][col].isOccupied())
+            {
+                return this.squares[row][col].getTile().getLetter();
+            }
+            else
+            {
+                throw new IllegalArgumentException("Invalid row and column coordinates or square not occupied.");
+            }
+        }
+
+        /**
+         * Method to make a deep copy of this object.
+         * @return BoardObj Returns a deep copy of this object.
+         */
         public BoardObj deepCopy()
         {
             BoardObj b = new BoardObj();
@@ -1054,28 +1461,40 @@ public class JunkBot implements BotAPI {
             return b;
         }
 
-        public boolean isValidAnchor(int r, int c)
+        /**
+         * Method to check if a square is a valid anchor for a new word placement
+         * @param row Pass the row of the square
+         * @param col Pass the column of the square
+         * @return boolean Returns true if the square is a valid anchor, else false.
+         */
+        public boolean isValidAnchor(int row, int col)
         {
             // First, check if occupied
-            if(!squares[r][c].isOccupied())
+            if(!squareIsOccupied(row, col))
             {
-                if(r == BOARD_CENTRE && c == BOARD_CENTRE) // If the centre square and not occupied, always valid.
+                if(row == BOARD_CENTRE && col == BOARD_CENTRE) // If the centre square and not occupied, always valid.
                 {
                     return true;
                 }
 
                 // Otherwise, check for another square around this (above, below, left, right)
-                return squareIsOccupied(r-1, c) || squareIsOccupied(r+1,c) || squareIsOccupied(r, c-1) || squareIsOccupied(r, c+1);
+                return squareIsOccupied(row-1, col) || squareIsOccupied(row+1,col) || squareIsOccupied(row, col-1) || squareIsOccupied(row, col+1);
             }
 
             return false;
         }
 
-        private boolean squareIsOccupied(int i, int j)
+        /**
+         * Method to check if a square is occupied
+         * @param row Pass the row of the square
+         * @param col Pass the column of the square
+         * @return boolean Returns true if the square is occupied, else false.
+         */
+        private boolean squareIsOccupied(int row, int col)
         {
             try
             {
-                return squares[i][j].isOccupied();
+                return squares[row][col].isOccupied();
             }
             catch(Exception ex)
             {
@@ -1083,18 +1502,25 @@ public class JunkBot implements BotAPI {
             }
         }
 
+        /**
+         * Method to update the anchors on the board.
+         */
         public void updateAnchors()
         {
             // For each square, recalculate isValidAnchor
-            for(int r = 0; r < BOARD_SIZE; r++)
+            for(int row = 0; row < BOARD_SIZE; row++)
             {
-                for(int c = 0; c < BOARD_SIZE; c++)
+                for(int col = 0; col < BOARD_SIZE; col++)
                 {
-                    squares[r][c].setAnchor(isValidAnchor(r, c));
+                    squares[row][col].setAnchor(isValidAnchor(row, col));
                 }
             }
         }
 
+        /**
+         * Method to place a word without a frame for processing opponent's moves.
+         * @param w Pass the word to be placed.
+         */
         public void placeCheat(Word w)
         {
             FrameObj f = new FrameObj();
@@ -1115,297 +1541,265 @@ public class JunkBot implements BotAPI {
             place(f, w);
         }
 
-        // TODO: Update cross sets
-        public void computeCrossSets(BoardObj board, GNode gaddag)
+        /**
+         * Method to update the cross sets of the squares on the board.
+         * @param gaddag Pass the current root of the GADDAG
+         */
+        public void updateCrossSets(GNode gaddag)
         {
-            for(int i = 0; i < Board.BOARD_SIZE; i++)
+            for(int rows = 0; rows < Board.BOARD_SIZE; rows++)
             {
-                for(int j = 0; j < Board.BOARD_SIZE; j++)
+                for(int cols = 0; cols < Board.BOARD_SIZE; cols++)
                 {
-                    if(board.getSquare(i, j).isAnchor())
+                    // If a square is occupied, clear it's horizontal and vertical cross sets
+                    if(this.squareIsOccupied(rows, cols))
                     {
-                        // Check horizontal
-                        if(board.getSquare(i+1, j).isOccupied() || board.getSquare(i-1, j).isOccupied())
+                        this.getSquare(rows, cols).clearVerticalCrossSet();
+                        this.getSquare(rows, cols).clearHorizontalCrossSet();
+                    }
+
+                    if(this.getSquare(rows, cols).isAnchor())
+                    {
+                        // Check for occupied squares to the left and right
+                        if(this.squareIsOccupied(rows, cols-1) || this.squareIsOccupied(rows, cols+1))
                         {
-                            board.getSquare(i, j).clearHorizontalCrossSet();
-                            computeHorizontalCrossSet(i, j, gaddag);
+                            this.getSquare(rows, cols).clearHorizontalCrossSet();
+                            updateHorizontalCrossSet(rows, cols, gaddag);
                         }
 
-                        // Check vertical
-                        if(board.getSquare(i, j+1).isOccupied() || board.getSquare(i, j-1).isOccupied())
+                        // Check for occupied squares above and below this square
+                        if(this.squareIsOccupied(rows-1, cols) || this.squareIsOccupied(rows+1, cols))
                         {
-                            board.getSquare(i, j).clearVerticalCrossSet();
-                            computeVerticalCrossSet(i, j, gaddag);
+                            this.getSquare(rows, cols).clearVerticalCrossSet();
+                            updateVerticalCrossSet(rows, cols, gaddag);
                         }
                     }
                 }
             }
         }
 
-        private void computeHorizontalCrossSet(int i, int j, GNode root)
+        /**
+         * Method to update the horizontal cross set of a square.
+         * @param rows Pass the row of the square
+         * @param cols Pass the column of the square
+         * @param root Pass the root of the GADDAG
+         */
+        private void updateHorizontalCrossSet(int rows, int cols, GNode root)
         {
+            // Start from root
             GNode curNode = root;
 
-            // If it has a tile to the left and right
-            if(getSquare(i-1, j).isOccupied() && getSquare(i + 1, j).isOccupied())
+            // If it has a tile left and right
+            if(squareIsOccupied(rows, cols - 1) && squareIsOccupied(rows, cols + 1))
             {
-                int preX = i - 1; // i Coordinate of prefix
+                int j = cols - 1; // cols Coordinate of prefix
 
                 // Traverse to the beginning of the prefix
-                while(getSquare(preX, j).isOccupied())
+                while(squareIsOccupied(rows, j))
                 {
-                    curNode = curNode.get(getSquare(preX, j).getTile().getLetter());
-                    if(curNode == null) // If it does not exist, return
+                    curNode = curNode.get(getLetter(rows, j)); // Update curNode by traversing GADDAG with each letter of the prefix
+
+                    if(curNode == null) // If it does not exist, return because not a valid prefix
                     {
                         return;
                     }
-                    preX--; // Decrement i coordinate
+
+                    j--; // Decrement cols coordinate to move further up the prefix
                 }
 
 
                 // Start making the prefix
-                curNode = curNode.get('#');
+                curNode = curNode.get('#'); // Traverse to the Delimiter
 
-                if(curNode != null)
+                if(curNode != null) // If there are valid endings to pair with the prefix
                 {
-                    GNode base = curNode;
+                    GNode startNode = curNode; // start node
 
-                    for(char c : UtilityMethods.generateAlphabetSet())
+                    for(char c : UtilityMethods.generateAlphabetSet()) // For each letter in the alphabet
                     {
-                        curNode = base;
-                        curNode = curNode.get(c);
-                        preX = i + 1;
+                        curNode = startNode; // Update curNode
+                        curNode = curNode.get(c); // Traverse with the current character
+                        j = cols + 1; // Update column coordinate
 
                         // While there is a letter to the right and haven't reached a null node
-                        while(curNode != null && getSquare(preX + 1, j).isOccupied())
+                        while(curNode != null && squareIsOccupied(rows, j + 1))
                         {
-                            curNode = curNode.get(getSquare(preX, j).getTile().getLetter());
-                            preX++;
+                            curNode = curNode.get(getLetter(rows, j)); // Traverse the gaddag with the letter
+                            j++; // Increment j to move along the board
                         }
 
-                        if(curNode != null)
+                        if(curNode != null) // If the word traversed so far is valid in the gaddag
                         {
-                            if(curNode.isValidEnd(getSquare(preX, j).getTile().getLetter()))
+                            if(curNode.isValidEnd(getLetter(rows, j))) // If this is a valid word end
                             {
-                                squares[i][j].addValidHorizontal(c);
+                                squares[rows][cols].addValidHorizontal(c); // Add the letter to the the horizontal cross set for the square
                             }
                         }
                     }
                 }
             }
             // Otherwise, if there is a tile before it
-            else if(getSquare(i - 1, j).isOccupied())
+            else if(squareIsOccupied(rows, cols - 1))
             {
-                int x = i - 1;
+                int j = cols - 1;
 
-                while(getSquare(x, j).isOccupied())
+                // Traverse prefix
+                while(squareIsOccupied(rows, j))
                 {
-                    curNode = curNode.get(getSquare(x, j).getTile().getLetter());
+                    curNode = curNode.get(getLetter(rows, j)); // Traverse gaddag
 
-                    if(curNode == null) {
-                        return;
-                    }
-
-                    x--;
-                }
-
-                curNode = curNode.get('#');
-
-                if(curNode != null)
-                {
-                    squares[i][j].addAllValidHoriz(curNode.getEndSet());
-                }
-            }
-            // Else if there is a tile after it
-            else if(getSquare(i+1, j).isOccupied())
-            {
-                int x = i + 1;
-
-                while(getSquare(x + 1, j).isOccupied())
-                {
-                    x++;
-                }
-
-                while(x > i)
-                {
-                    curNode = curNode.get(getSquare(x, j).getTile().getLetter());
-
-                    if(curNode == null)
+                    if(curNode == null) // If invalid, return
                     {
                         return;
                     }
 
-                    x--;
+                    j--; // Decrement to traverse backwards to construct prefix
                 }
-                //System.out.println("End set size: " + curNode.getEndArray().length);
-                //System.out.println("Last char: " + (byte) curNode.getEndArray()[curNode.getEndArray().length - 1]);
-                //System.out.println("End set: " + Arrays.toString(curNode.getEndArray()));
-                squares[i][j].addAllValidHoriz(curNode.getEndSet());
+
+                curNode = curNode.get('#'); // Get delimiter
+
+                if(curNode != null) // If a valid node position
+                {
+                    squares[rows][cols].addAllValidHoriz(curNode.getEndSet()); // Add the end set of this node (delimiter) to horizontal cross set
+                }
+            }
+            // Else if there is a tile after this square
+            else if(squareIsOccupied(rows, cols + 1))
+            {
+                int j = cols + 1;
+
+                while(squareIsOccupied(rows, j + 1)) // Traverse to the end of this line of tiles
+                {
+                    j++;
+                }
+
+                while(j > cols) // While not at the starting position
+                {
+                    curNode = curNode.get(getLetter(rows, j)); // Traverse gaddag with current letter
+
+                    if(curNode == null) // If invalid, return
+                    {
+                        return;
+                    }
+
+                    j--; // Decrement to move backwards
+                }
+
+                squares[rows][cols].addAllValidHoriz(curNode.getEndSet()); // Add the current end set to the horizontal cross set
             }
         }
 
-        private void computeVerticalCrossSet(int i, int j, GNode root)
+        /**
+         * Method to update the vertical cross set of a square.
+         * @param rows Pass the row of the square
+         * @param cols Pass the column of the square
+         * @param root Pass the root of the GADDAG
+         */
+        private void updateVerticalCrossSet(int rows, int cols, GNode root)
         {
             GNode curNode = root;
 
             // If it has a tile to the left and right
-            if(getSquare(i, j - 1).isOccupied() && getSquare(i, j + 1).isOccupied())
+            if(squareIsOccupied(rows - 1, cols) && squareIsOccupied(rows + 1, cols))
             {
-                int preY = j - 1; // i Coordinate of prefix
+                int i = rows - 1; // rows Coordinate of prefix
 
                 // Traverse to the beginning of the prefix
-                while(getSquare(i, preY).isOccupied())
+                while(squareIsOccupied(i, cols))
                 {
-                    curNode = curNode.get(getSquare(i, preY).getTile().getLetter());
+                    curNode = curNode.get(getLetter(i, cols)); // Traverse gaddag
                     if(curNode == null) // If it does not exist, return
                     {
                         return;
                     }
-                    preY--; // Decrement i coordinate
+                    i--; // Decrement rows coordinate to move upwards
                 }
 
 
-                // Start making the prefix
-                curNode = curNode.get('#');
+                curNode = curNode.get('#'); // Traverse to delimiter
 
-                if(curNode != null)
+                if(curNode != null) // If valid
                 {
-                    GNode base = curNode;
+                    GNode startNode = curNode; // Keep curNode starting position
 
-                    for(char c : UtilityMethods.generateAlphabetSet())
+                    for(char c : UtilityMethods.generateAlphabetSet()) // For each letter in the alphabet
                     {
-                        curNode = base;
-                        curNode = curNode.get(c);
-                        preY = j + 1;
+                        curNode = startNode; // Reset curNode position
+                        curNode = curNode.get(c); // Travere gaddag
+                        i = rows + 1; //
 
                         // While there is a letter to the right and haven't reached a null node
-                        while(curNode != null && getSquare(i, preY + 1).isOccupied())
+                        while(curNode != null && squareIsOccupied(i + 1, cols))
                         {
-                            curNode = curNode.get(getSquare(i, preY).getTile().getLetter());
-                            preY++;
+                            curNode = curNode.get(getLetter(i, cols)); // Traverse gaddag
+                            i++; // Increment i
                         }
 
-                        if(curNode != null)
+                        if(curNode != null) // If valid node position
                         {
-                            if(curNode.isValidEnd(getSquare(i, preY).getTile().getLetter()))
+                            if(curNode.isValidEnd(getLetter(i, cols))) // If valid end
                             {
-                                squares[i][j].addValidVertical(c);
+                                squares[rows][cols].addValidVertical(c); // Add char to legal vertical set
                             }
                         }
                     }
                 }
             }
             // Otherwise, if there is a tile before it
-            else if(getSquare(i, j - 1).isOccupied())
+            else if(squareIsOccupied(rows - 1, cols))
             {
-                int preY = j - 1;
+                int i = rows - 1;
 
-                while(getSquare(i, preY).isOccupied())
+                // Traverse prefix
+                while(squareIsOccupied(i, cols))
                 {
-                    curNode = curNode.get(getSquare(i, preY).getTile().getLetter());
+                    curNode = curNode.get(getLetter(i, cols));
 
                     if(curNode == null) {
                         return;
                     }
 
-                    preY--;
+                    i--;
                 }
 
-                curNode = curNode.get('#');
+                curNode = curNode.get('#'); // Traverse to delimiter
 
-                if(curNode != null)
+                if(curNode != null) // If valid node
                 {
-                    squares[i][j].addAllValidVertical(curNode.getEndSet());
+                    squares[rows][cols].addAllValidVertical(curNode.getEndSet()); // Add endset to legal vertical
                 }
             }
             // Else if there is a tile after it
-            else if(getSquare(i, j + 1).isOccupied())
+            else if(squareIsOccupied(rows + 1, cols))
             {
-                int preY = j + 1;
+                int i = rows + 1;
 
-                while(getSquare(i, preY + 1).isOccupied())
+                // Traverse to end of the suffix
+                while(squareIsOccupied(i + 1, cols))
                 {
-                    preY++;
+                    i++;
                 }
 
-                while(preY > j)
+                // While not back at starting position
+                while(i > rows)
                 {
-                    curNode = curNode.get(getSquare(i, preY).getTile().getLetter());
+                    curNode = curNode.get(getLetter(i, cols)); // Traverse prefix
 
-                    if(curNode == null)
+                    if(curNode == null) // If invalid position, return
                     {
                         return;
                     }
 
-                    preY--;
+                    i--; // Move backwards up the suffix
                 }
-                squares[i][j].addAllValidVertical(curNode.getEndSet());
+                squares[rows][cols].addAllValidVertical(curNode.getEndSet()); // Add end set to valid vertical
             }
         }
 
-        // TODO: Remove
-        public void printAnchors(){
-            System.out.print("   ");
-            for(int x=0; x<15; x++)
-                System.out.print(" " + x);
-            System.out.println();
-
-            for(int j=0; j<15; j++){
-                String temp = Integer.toString(j);
-                if(temp.length() < 2)
-                    temp = " " + temp;
-                System.out.print(temp + "|");
-
-                for(int i=0; i<15; i++){
-                    if(squares[i][j].isAnchor())
-                        System.out.print(" 1");
-                    else
-                        System.out.print(" 0");
-                }
-                System.out.println();
-            }
-            System.out.println();
-        }
-
-        // TODO: Remove
-        public void printNumCrossSets(){
-            System.out.print("Horizontal\n   ");
-            for(int x=0; x<15; x++)
-                System.out.print(" " + x);
-            System.out.println();
-
-            for(int j=0; j<15; j++){
-                String temp = Integer.toString(j);
-                if(temp.length() < 2)
-                    temp = " " + temp;
-                System.out.print(temp + "|");
-
-                for(int i=0; i<15; i++){
-                    System.out.print(" " + getSquare(i, j).getHorizontalCrossSet().length);
-                }
-                System.out.println();
-            }
-            System.out.println();
-
-            System.out.print("Vertical\n   ");
-            for(int x=0; x<15; x++)
-                System.out.print(" " + x);
-            System.out.println();
-
-            for(int j=0; j<15; j++){
-                String temp = Integer.toString(j);
-                if(temp.length() < 2)
-                    temp = " " + temp;
-                System.out.print(temp + "|");
-
-                for(int i=0; i<15; i++){
-                    System.out.print(" " + getSquare(i, j).getVerticalCrossSet().length);
-                }
-                System.out.println();
-            }
-            System.out.println();
-        }
-
+        /**
+         * Method to create a String representation of the object.
+         * @return String Returns a string representation of the object.
+         */
         @Override public String toString()
         {
             StringBuilder boardString = new StringBuilder();
@@ -1424,18 +1818,27 @@ public class JunkBot implements BotAPI {
 
     }
 
-    // Extend square class to include cross sets (can super the constructor)
-
     /**
      * Private Frame class with extra methods for easier manipulation of the frame
      */
     private class FrameObj extends Frame
     {
+        /**
+         * Method to create a deep copy of the object.
+         * @return FrameObj Returns a deep copy of this object.
+         */
         public FrameObj deepCopy()
         {
             FrameObj f = new FrameObj();
 
-            f.addTiles(this.getTiles());
+            ArrayList<Tile> tilesToAdd = new ArrayList<>();
+
+            for(int i = 0; i < this.getTiles().size(); i++)
+            {
+                tilesToAdd.add(new Tile(this.getTiles().get(i).getLetter()));
+            }
+
+            f.addTiles(tilesToAdd);
             f.errorCode = this.getErrorCode();
 
             return f;
@@ -1443,7 +1846,7 @@ public class JunkBot implements BotAPI {
     }
 
     /**
-     * Private player class
+     * Private player class with extra methods for mimicking the game.
      */
     private class PlayerObj
     {
@@ -1509,6 +1912,11 @@ public class JunkBot implements BotAPI {
             return score;
         }
 
+        public void setScore(int score)
+        {
+            this.score = score;
+        }
+
         public FrameObj getFrame() {
             return frame;
         }
@@ -1539,9 +1947,106 @@ public class JunkBot implements BotAPI {
         }
     }
 
-    protected class MCTS
+    private class Simulator
     {
-        public static final int MAX_PLAYOUT_ITERATIONS = 1;
+        public Word generateOptimalWord(BoardObj board, PlayerObj mainPlayer, PlayerObj oppPlayer)
+        {
+            double currentBestScore = 0f;
+            Word currentBestWord = null;
+
+            ArrayList<Word> bestNWords = StaticValueGenerator.selectBestNWords(board.deepCopy(), mainPlayer.getFrame().deepCopy(), getAllPossibleMoves(board, mainPlayer.getFrame()));
+
+            for(int i = 0; i < bestNWords.size(); i++)
+            {
+                double currentAvgScore = simulateNGames(board.deepCopy(), mainPlayer.deepCopy(), oppPlayer.deepCopy(), bestNWords.get(i));
+
+                if(currentAvgScore > currentBestScore)
+                {
+                    currentBestScore = currentAvgScore;
+                    currentBestWord = bestNWords.get(i);
+                }
+            }
+
+            return currentBestWord;
+        }
+
+        private double simulateNGames(BoardObj board, PlayerObj mainPlayer, PlayerObj oppPlayer, Word wordToPlay)
+        {
+            double totalAverageScore = 0f;
+
+            for(int i = 0; i < MAX_PLAYOUT_ITERATIONS; i++)
+            {
+                totalAverageScore += simulateOneGame(board.deepCopy(), mainPlayer.deepCopy(), oppPlayer.deepCopy(), wordToPlay);
+            }
+
+            return (totalAverageScore/MAX_PLAYOUT_ITERATIONS);
+        }
+
+        private double simulateOneGame(BoardObj board, PlayerObj mainPlayer, PlayerObj oppPlayer, Word wordToPlay)
+        {
+            // Play Move 0
+            // Me: Play move 0
+            wordToPlay = correctBlanks(board, mainPlayer.getFrame(), wordToPlay);
+            board.place(mainPlayer.getFrame(), wordToPlay);
+            int latestPoints = board.getAllPoints(board.getAllWords(wordToPlay));
+
+            // Update score
+            mainPlayer.addPoints(latestPoints);
+
+            // ------------------ MOVE 1 ------------------
+            // Opponent: Generate random frame
+            oppPlayer.setFrame(generateRandomFrame());
+            // Generate all moves
+            ArrayList<Word> oppWords = getAllPossibleMoves(board, oppPlayer.getFrame());
+            // Statically evaluate best
+
+            if(oppPlayer.getFrame().size() < 7)
+            {
+                System.out.println("ERROR OCCURRED.");
+            }
+
+            Word oppBestWord = StaticValueGenerator.findBestWord(board, oppPlayer.getFrame().deepCopy(), oppWords);
+
+            oppBestWord = correctBlanks(board, oppPlayer.getFrame(), oppBestWord);
+
+            // Play move 1
+            board.place(oppPlayer.getFrame(), oppBestWord);
+            // Update score
+            oppPlayer.addPoints(board.getAllPoints(board.getAllWords(oppBestWord)));
+
+            // ------------------ MOVE 2 ------------------
+            // Me: Refill frame with random tiles
+            mainPlayer.getFrame().refill(new Pool());
+            // Generate all moves
+            ArrayList<Word> mainWords = getAllPossibleMoves(board, mainPlayer.getFrame().deepCopy());
+            // Statically evaluate best
+            Word mainBestWord = StaticValueGenerator.findBestWord(board, mainPlayer.getFrame(), mainWords);
+
+            mainBestWord = correctBlanks(board, mainPlayer.getFrame(), mainBestWord);
+
+            double scoreWithLeave = StaticValueGenerator.generateStaticValuation(board, mainBestWord, mainPlayer.getFrame());
+            // Play move 2
+            board.place(mainPlayer.getFrame(), mainBestWord);
+            // Update score with leave
+            mainPlayer.addPoints(scoreWithLeave);
+
+            System.out.println("PLAYOUT COMPLETED");
+
+            return mainPlayer.getScore();
+        }
+
+        // Utility Methods
+        public FrameObj generateRandomFrame()
+        {
+            FrameObj f = new FrameObj();
+            f.refill(new Pool());
+            return f;
+        }
+    }
+
+    // Deprecated due to time requirements
+    private class MCTS
+    {
         private Tree MCT;
 
         public MCTS(BoardObj board, PlayerObj main, PlayerObj opp)
@@ -1552,23 +2057,43 @@ public class JunkBot implements BotAPI {
             this.MCT.getRoot().getState().setOpponent(opp.deepCopy());
         }
 
-        // TODO: WRITE AN OVERALL CONTROL METHOD THAT CALLS EXPANDS NODE AND APPENDS BEST NODE TO TREE
+        public void updateMCTS(BoardObj board, FrameObj mainFrame, int mainScore, int oppScore)
+        {
+            this.MCT.getRoot().getState().setBoard(board.deepCopy());
+            this.MCT.getRoot().getState().getMainPlayer().setFrame(mainFrame.deepCopy());
+            this.MCT.getRoot().getState().getMainPlayer().setScore(mainScore);
+            this.MCT.getRoot().getState().getOpponent().setScore(oppScore);
+        }
 
         public Word generateOptimalMove(BoardObj b, PlayerObj main, PlayerObj opp)
         {
             // Add new Node to the current node and update current
             this.MCT.updateCurrent(this.MCT.current.addChild(new Node(new State(b.deepCopy(), main.deepCopy(), opp.deepCopy()), this.MCT.current)));
 
-            ArrayList<Word> possibleWords = StaticValueGenerator.selectBestNWords(b, main.getFrame(), getAllPossibleMoves(b, main.getFrame()));
+            //System.out.println("Frame: " + main.getFrame().toString());
 
-            // System.out.println("1333: Possible words: " + possibleWords.toString());
+            ArrayList<Word> possibleWords = getAllPossibleMoves(b, main.getFrame());
+
+            System.out.println("Possible words length: " + possibleWords.size());
+
+            possibleWords = StaticValueGenerator.selectBestNWords(b, main.getFrame(), getAllPossibleMoves(b, main.getFrame()));
+
+            System.out.println("Possible Words: " + possibleWords.toString());
+
+            System.out.println("Possible words length: " + possibleWords.size());
 
             Node optimalNode = expandNode(possibleWords);
 
+            int index = MCT.current.getChildren().indexOf(optimalNode);
+
+            System.out.println("Index: " + index);
+
             MCT.current.freeUnusedChildren(optimalNode);
 
+            MCT.current = optimalNode;
+
             // Return the word played to get the optimal node
-            return possibleWords.get(MCT.current.getChildren().indexOf(optimalNode));
+            return possibleWords.get(index);
         }
 
         /**
@@ -1583,7 +2108,7 @@ public class JunkBot implements BotAPI {
                 evaluateNode(currentWord, word);
             }
 
-            System.out.println("NUMBER OF CHILDREN: " + words.size() + " == " + MCT.current.getChildren().size());
+            //System.out.println("NUMBER OF CHILDREN: " + words.size() + " == " + MCT.current.getChildren().size());
 
             // Pick the best of the nodes.
             return findBestNode(MCT.current);
@@ -1594,45 +2119,26 @@ public class JunkBot implements BotAPI {
          * @param currentWord Pass the current node to be played out.
          * @param initial_ply0 Pass the word to be played
          */
-        private void evaluateNode(Node currentWord, Word initial_ply0)
+        public void evaluateNode(Node currentWord, Word initial_ply0)
         {
             // Run MAX_PLAYOUT_ITERATION times
 
             for(int i = 0; i < MAX_PLAYOUT_ITERATIONS; i++)
             {
+                //System.out.println("ITERATING... " + i);
                 // Append new node to current word
                 Node currentPlayout = currentWord.addChild(new Node(currentWord));
 
                 // Play Move 0
                 // Me: Play move 0
-
-                currentWord.getState().getBoard().place(currentWord.getState().getMainPlayer().getFrame(), initial_ply0);
-                int latestPoints = currentWord.getState().getBoard().getAllPoints(currentWord.getState().getBoard().getAllWords(initial_ply0));
+                currentPlayout.getState().getBoard().place(currentPlayout.getState().getMainPlayer().getFrame(), initial_ply0);
+                int latestPoints = currentPlayout.getState().getBoard().getAllPoints(currentPlayout.getState().getBoard().getAllWords(initial_ply0));
 
                 // Update score
-                currentWord.getState().getMainPlayer().addPoints(latestPoints);
-                /*
-
-                System.out.println("INITIAL PLAY: " + initial_ply0);
-
-                for(int m = 0; m < initial_ply0.getLetters().length(); m++)
-                {
-                    if(initial_ply0.isHorizontal())
-                    {
-                        System.out.println("Tile: " + initial_ply0.getLetters().charAt(m) + " | Row: " + (initial_ply0.getFirstRow()) + " | Col: " + (initial_ply0.getFirstColumn() + m));
-                    }
-                    else
-                    {
-                        System.out.println("Tile: " + initial_ply0.getLetters().charAt(m) + " | Row: " + (initial_ply0.getFirstRow() + m) + " | Col: " + (initial_ply0.getFirstColumn()));
-                    }
-
-                }
-                System.out.println();
-
-                 */
+                currentPlayout.getState().getMainPlayer().addPoints(latestPoints);
 
                 // Playout node
-                singleStaticPlayout(currentPlayout, currentWord.getState().getBoard());
+                singleStaticPlayout(currentPlayout, currentPlayout.getState().getBoard());
             }
 
             // Find best node from nodes appended
@@ -1640,10 +2146,9 @@ public class JunkBot implements BotAPI {
             currentWord.updateScoreDifferential();
         }
 
-        private void singleStaticPlayout(Node currentWord, BoardObj board)
+        public void singleStaticPlayout(Node currentWord, BoardObj board)
         {
             // Store final score and score differential (me - opponent) in nodes.
-
 
             // ------------------ MOVE 1 ------------------
             // Opponent: Generate random frame
@@ -1678,6 +2183,9 @@ public class JunkBot implements BotAPI {
             // Update score with leave
             currentWord.getState().getMainPlayer().addPoints(scoreWithLeave);
 
+            //System.out.println(board.toString());
+            //System.out.println("Final main score: " + currentWord.getState().getMainPlayer().score + ", Opp score: " + currentWord.getState().getOpponent().score);
+
             // Update average score of node here ?
         }
 
@@ -1697,11 +2205,22 @@ public class JunkBot implements BotAPI {
         private Node findBestNode(Node root)
         {
             Node best = root.getHighestAvgScoreChild();
-            root.freeUnusedChildren(best);
+            System.out.println("Highest Score: " + best.averageScore);
+
+            for(int i = 0; i < root.getChildren().size(); i++)
+            {
+                System.out.println(i + ": Score: " + root.getChildren().get(i).averageScore + " || Diff: " + root.getChildren().get(i).averageScoreDifferential);
+            }
+
+            System.out.println("Best index: " + root.children.indexOf(best));
+
+            // root.freeUnusedChildren(best);
             return best;
         }
+
     }
 
+    // Deprecated due to time requirements
     private class State
     {
         private BoardObj board;
@@ -1717,6 +2236,9 @@ public class JunkBot implements BotAPI {
         }
 
         public State() {
+            this.board = new BoardObj();
+            this.mainPlayer = new PlayerObj(-1);
+            this.opponent = new PlayerObj(-2);
         }
 
         // Getter and Setters
@@ -1744,8 +2266,36 @@ public class JunkBot implements BotAPI {
         public void setOpponent(PlayerObj opponent) {
             this.opponent = opponent;
         }
+
+        // Methods
+
+        public State deepCopy()
+        {
+            State s = new State();
+            s.setBoard(this.getBoard().deepCopy());
+            s.setMainPlayer(this.mainPlayer.deepCopy());
+            s.setOpponent(this.opponent.deepCopy());
+
+            return s;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            State state = (State) o;
+            return getBoard().equals(state.getBoard()) &&
+                    getMainPlayer().equals(state.getMainPlayer()) &&
+                    getOpponent().equals(state.getOpponent());
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(getBoard(), getMainPlayer(), getOpponent());
+        }
     }
 
+    // Deprecated due to time requirements
     private class Node
     {
         // Fields
@@ -1791,7 +2341,7 @@ public class JunkBot implements BotAPI {
 
         public Node(Node parent)
         {
-            this.state = parent.state;
+            this.state = parent.state.deepCopy();
             this.parent = parent;
             this.children = new ArrayList<>();
             this.averageScore = 0;
@@ -1896,6 +2446,8 @@ public class JunkBot implements BotAPI {
                 }
             }
 
+            System.out.println("Best Child: " + bestChild.toString());
+
             return bestChild;
         }
 
@@ -1905,18 +2457,29 @@ public class JunkBot implements BotAPI {
          */
         public void freeUnusedChildren(Node target)
         {
-            int n = this.getChildren().size();
+            this.getChildren().clear();
+            this.getChildren().add(target);
+        }
 
-            for (int i = 0; i < n; i++)
-            {
-                if(this.getChildren().get(i) != target)
-                {
-                    this.getChildren().remove(i);
-                }
-            }
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Node node = (Node) o;
+            return Double.compare(node.getAverageScoreDifferential(), getAverageScoreDifferential()) == 0 &&
+                    Double.compare(node.getAverageScore(), getAverageScore()) == 0 &&
+                    getState().equals(node.getState()) &&
+                    getParent().equals(node.getParent()) &&
+                    getChildren().equals(node.getChildren());
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(getState(), getParent(), getAverageScoreDifferential(), getAverageScore());
         }
     }
 
+    // Deprecated due to time requirements
     private class Tree {
 
         private Node root;
@@ -1961,6 +2524,8 @@ public class JunkBot implements BotAPI {
         {
             double score = 0f;
 
+            w = correctBlanks(b, f, w);
+
             // Score placement on board
 
             if(b.isLegalPlay(f, w))
@@ -1982,7 +2547,6 @@ public class JunkBot implements BotAPI {
                     System.out.println("WORD: " + w);
                     System.out.println("CATCH BLOCK\n" + b.toString());
 
-
                     ex.printStackTrace();
                     throw new IllegalStateException("EXCEPTION THROWN");
                 }
@@ -1995,35 +2559,52 @@ public class JunkBot implements BotAPI {
             }
             else
             {
-                return Double.MIN_VALUE;
-                /*
-                System.out.println("Frame: " + f.getTiles().toString());
-                System.out.println("Word: " + w);
-                System.out.println("Error code: " + b.getErrorCode());
-
-                for(int i = 0; i < w.getLetters().length(); i++)
+                if(DEBUG)
                 {
+                    System.out.println("\n\nPROBLEM -  INVALID PLAY");
+                    System.out.println("Frame: " + f.getTiles().toString());
+                    System.out.println("Word: " + w);
+                    System.out.println("Error code: " + b.getErrorCode());
+
+                    for(int i = 0; i < w.getLetters().length(); i++)
+                    {
+                        if(w.isHorizontal())
+                        {
+                            System.out.println("Tile: " + w.getLetters().charAt(i) + " | Row: " + (w.getFirstRow()) + " | Col: " + (w.getFirstColumn() + i));
+                        }
+                        else
+                        {
+                            System.out.println("Tile: " + w.getLetters().charAt(i) + " | Row: " + (w.getFirstRow() + i) + " | Col: " + (w.getFirstColumn()));
+                        }
+                    }
+                    System.out.println();
+
+                    System.out.println("WORD IS HORIZONTAL: " + w.isHorizontal());
+                    System.out.println("Row: " + w.getFirstRow() + ", Col: " + w.getFirstColumn());
+                    System.out.println("Last row: " + w.getLastRow() + ", Last Col: " + w.getLastColumn());
+                    System.out.println();
+
                     if(w.isHorizontal())
                     {
-                        System.out.println("Tile: " + w.getLetters().charAt(i) + " | Row: " + (w.getFirstRow()) + " | Col: " + (w.getFirstColumn() + i));
+                        System.out.println("CHECKING PREFIX...");
+                        System.out.println("Left: " + b.squareIsOccupied(w.getFirstRow(), w.getFirstColumn()-1));
+
+                        System.out.println("CHECKING SUFFIX...");
+                        System.out.println("Right: " + b.squareIsOccupied(w.getLastRow(), w.getLastColumn()+1));
                     }
                     else
                     {
-                        System.out.println("Tile: " + w.getLetters().charAt(i) + " | Row: " + (w.getFirstRow() + i) + " | Col: " + (w.getFirstColumn()));
-                    }
-                }
-                System.out.println();
+                        System.out.println("CHECKING PREFIX...");
+                        System.out.println("Above: " + b.squareIsOccupied(w.getFirstRow()-1, w.getFirstColumn()));
 
-                System.out.println("WORD IS HORIZONTAL: " + w.isHorizontal());
-                System.out.println("Row: " + w.getFirstRow() + ", Col: " + w.getFirstColumn());
-                System.out.println("Last row: " + w.getLastRow() + ", Last Col: " + w.getLastColumn());
-                System.out.println();
+                        System.out.println("CHECKING SUFFIX...");
+                        System.out.println("Below: " + b.squareIsOccupied(w.getLastRow()+1, w.getLastColumn()));
+                    }
+
+                    System.out.println(b.toString());
+                }
 
                 throw new IllegalArgumentException("Invalid play, cannot score this play.");
-
-                 */
-
-
             }
 
             return score;
@@ -2065,23 +2646,9 @@ public class JunkBot implements BotAPI {
             {
                 Pair<Word, Double> p = new Pair<Word, Double>(words.get(i), generateStaticValuation(b, words.get(i), f));
                 listToSort.add(p);
-
-                //System.out.println(p.toString());
             }
-
-            //words.sort(Comparator.comparingDouble((Word w) -> generateStaticValuation(b, w, f)));
 
             listToSort = mergeSortEnhanced(listToSort);
-
-            //System.out.println("--- SORTED --- \n\n");
-
-            /*
-            for(int i = 0; i < listToSort.size(); i++)
-            {
-                System.out.println(listToSort.get(i).toString());
-            }
-
-             */
 
             words.clear();
 
@@ -2090,12 +2657,6 @@ public class JunkBot implements BotAPI {
                 words.add(listToSort.get(i).getKey());
             }
 
-            // System.out.println("Words: " + words.toString());
-
-            System.out.println("Are unique: " + areUnique(words));
-
-            System.out.println("Word list length: " + words.size());
-
             return words;
         }
 
@@ -2103,11 +2664,11 @@ public class JunkBot implements BotAPI {
         {
             ArrayList<Word> result = new ArrayList<>();
 
-            words = sortWordsByValue(b, f, words);
-
             for(int i = 0; i < NUM_BEST_WORDS && i < words.size(); i++)
             {
-                result.add(words.get(i));
+                Word currentBest = findBestWord(b, f, words);
+                words.remove(currentBest);
+                result.add(currentBest);
             }
 
             return result;
@@ -2125,7 +2686,6 @@ public class JunkBot implements BotAPI {
                     {
                         if(UtilityMethods.areEqual(words.get(i), words.get(j)))
                         {
-                            // System.out.println(words.get(i) + " = "+ words.get(j));
                             areUnique = false;
                         }
                     }
@@ -2156,23 +2716,6 @@ public class JunkBot implements BotAPI {
             return array;
         }
 
-        /*
-        public static <T> T[] mergeSort(T[] a, int lower, int upper)
-        {
-            if(lower < upper)
-            {
-                int middle = (lower + (upper - lower) / 2); // Avoid overflow
-
-                mergeSort(a, lower, middle);
-                mergeSort(a, middle+1, upper);
-
-                return merge(a, lower, middle, upper);
-            }
-
-            return a;
-        }
-         */
-
         public static <T> List<Pair<T, Double>> merge(List<Pair<T, Double>> left, List<Pair<T, Double>> right)
         {
             List<Pair<T, Double>> mergedOutput = new ArrayList<>();
@@ -2192,66 +2735,6 @@ public class JunkBot implements BotAPI {
             mergedOutput.addAll(left);
             mergedOutput.addAll(right);
             return mergedOutput;
-
-            /*
-
-            int n1 = middle - lower + 1;
-            int n2 = upper - middle;
-
-            // Create temp arrays
-            List<Pair<T, Double>> tempLower = new ArrayList<>(n1);
-
-            List<Pair<T, Double>> tempUpper = new ArrayList<>(n2);
-
-            // Copy data into temp arrays
-            for(int i = 0; i < n1; i++)
-            {
-                tempLower.add(array.get(lower + i));
-                //tempLower.set(i, array.get(lower + i));
-            }
-
-            for(int i = 0; i < n2; i++)
-            {
-                tempUpper.add(array.get(middle + i + 1));
-                //tempUpper.set(i, array.get(middle + i + 1));
-            }
-
-            int i = 0, j = 0, k = lower;
-
-            // Merge Arrays
-            while(i < n1 && j < n2)
-            {
-                if(tempLower.get(i).getValue() <= tempUpper.get(j).getValue())
-                {
-                    array.set(k, tempLower.get(i));
-                    i++;
-                }
-                else
-                {
-                    array.set(k, tempUpper.get(j));
-                    j++;
-                }
-                k++;
-            }
-
-            // Add remaining elements in arrays
-            while(i < n1)
-            {
-                array.set(k, tempLower.get(i));
-                k++;
-                i++;
-            }
-
-            while(j < n2)
-            {
-                array.set(k, tempUpper.get(j));
-                k++;
-                i++;
-            }
-
-            return array;
-
-             */
         }
 
         public static <T> List<Pair<T, Double>> mergeSortEnhanced(List<Pair<T, Double>> objects)
@@ -2285,61 +2768,142 @@ public class JunkBot implements BotAPI {
                 objects.addAll(merge(left, right));
             }
 
-            /*
-            System.out.println("LOWER " + lower + " || UPPER " + upper);
-            if(lower < upper)
-            {
-                int middle = (lower + (upper - lower) / 2); // Avoid overflow
-
-                List<Pair<T, Double>> left = mergeSortEnhanced(objects, lower, middle);
-                List<Pair<T, Double>> right = mergeSortEnhanced(objects, middle+1, upper);
-
-                System.out.println("LOWER " + lower + " < UPPER " + upper);
-                System.out.println("Left length: " + left.size());
-                System.out.println("Middle" + middle);
-                System.out.println("Right length: " + right.size());
-
-                if(left.size() > middle && right.size() > 0)
-                {
-                    if(left.get(middle).getValue() <= right.get(0).getValue()) // If you don't need to merge
-                    {
-                        ArrayList<Pair<T, Double>> array = new ArrayList<>();
-                        int j = 0, k = 0;
-
-                        for(int i = 0; i < upper; i++)
-                        {
-                            if(i < middle)
-                            {
-                                array.add(left.get(j));
-                                //array.set(i, left.get(j));
-                                j++;
-                            }
-                            else
-                            {
-                                array.add(right.get(k));
-                                //array.set(i, right.get(k));
-                                k++;
-                            }
-                        }
-
-                        return array;
-                    }
-                }
-
-                return merge(objects, lower, middle, upper);
-            }
-
-             */
-
-
             return objects;
         }
     }
 
     /**
-     * Static class for getting the leave values of a rack.
+     * Static class for getting the estimated value of a rack leave.
      */
     private static class LeaveValues
+    {
+        private static boolean isInitialised = false;
+        private static HashMap<String, Double> leaveValues;
+
+        public LeaveValues()
+        {
+            initialise();
+        }
+
+        private static void initialise()
+        {
+            if(!isInitialised)
+            {
+                leaveValues = new HashMap<>();
+                initialiseLeaves();
+            }
+        }
+
+        private static void initialiseLeaves()
+        {
+            String l0 = "? 25.5731\n" +
+                    "S 8.0431\n" +
+                    "Z 5.1233\n" +
+                    "X 3.3136\n" +
+                    "R 1.098\n" +
+                    "H 1.0877\n" +
+                    "C 0.851\n" +
+                    "M 0.58\n" +
+                    "D 0.4502\n" +
+                    "E 0.3458\n" +
+                    "N 0.2242\n" +
+                    "T -0.0968\n" +
+                    "L -0.1679\n" +
+                    "P -0.4599\n" +
+                    "K -0.5406\n" +
+                    "Y -0.6328\n" +
+                    "A -0.633\n" +
+                    "J -1.4746\n" +
+                    "B -2.0041\n" +
+                    "I -2.0719\n" +
+                    "F -2.2071\n" +
+                    "O -2.503\n" +
+                    "G -2.8546\n" +
+                    "W -3.8211\n" +
+                    "U -5.1045\n" +
+                    "V -5.5484\n" +
+                    "Q -6.7852\n";
+
+            addSingleLeave(l0);
+        }
+
+        private static void addSingleLeave(String input)
+        {
+            if(!input.equals(""))
+            {
+                String[] leaves = input.split("\n");
+                int N = leaves.length;
+
+                for(int j = 0; j < N; j++)
+                {
+                    String[] currentLeave = leaves[j].split("\\s");
+                    leaveValues.put(currentLeave[0], Double.parseDouble(currentLeave[1]));
+                }
+            }
+        }
+
+        public static double getLeaveFromFrame(FrameObj frame)
+        {
+            if(!isInitialised)
+            {
+                initialise();
+            }
+
+            String leave = convertFrameToLeave(frame);
+
+            if(leave.length() == 0)
+            {
+                return 0;
+            }
+
+            return calculateDefaultLeave(leave);
+        }
+
+        private static String convertFrameToLeave(FrameObj frame)
+        {
+            char[] leave = new char[frame.getTiles().size()];
+
+            for(int i = 0; i < frame.getTiles().size(); i++)
+            {
+                char c = frame.getTiles().get(i).getLetter();
+                if(c == '_')
+                {
+                    c = '?';
+                }
+                leave[i] = c;
+            }
+
+            return sortString(leave);
+        }
+
+        private static String sortString(char[] input)
+        {
+            Arrays.sort(input);
+
+            String currentLeave = new String(input);
+
+            return new String(input);
+        }
+
+        private static double calculateDefaultLeave(String leave)
+        {
+            int length = leave.length();
+            double value = 0.0;
+
+            for(int i = 0; i < length; i++)
+            {
+                value += leaveValues.get(Character.toString(leave.charAt(i)));
+            }
+
+            return value;
+        }
+    }
+
+    /**
+     * Static class for getting the leave values of a rack.
+     * @deprecated No longer used due to issues with ZIP compression and not being able to read in from files.
+     */
+    private static class LeaveValues2
     {
         private static boolean isInitialised = false;
         private static List<HashMap<String, Double>> leaveMaps = new ArrayList<>();
@@ -2352,7 +2916,7 @@ public class JunkBot implements BotAPI {
         private static ArrayList<StringBuilder> leaves4;
         private static ArrayList<StringBuilder> leaves5;
 
-        public LeaveValues()
+        public LeaveValues2()
         {
             initialise();
         }
@@ -2389,7 +2953,7 @@ public class JunkBot implements BotAPI {
                     try
                     {
                         addSingleLeave(l0, 0);
-                        addSingleLeave(l1, 0);
+                        addSingleLeave(l1, 1);
                         /*
                         addAllLeaves(leaves0, 0);
                         addAllLeaves(leaves1, 1);
@@ -3044,29 +3608,29 @@ public class JunkBot implements BotAPI {
 
                 //if(totalLineCounter < UPPER && totalLineCounter > LOWER)
                 //{
-                if(lineCounter < 5)
-                {
-                    buffer.append(new String(bufferArray)).append("\\n");
-                }
-                else
-                {
-                    lineCounter = 0;
-                    if(appendCounter > 5)
+                    if(lineCounter < 5)
                     {
-                        // System.out.println("NEW SB ADDED");
-                        writer.println(");\n\n");
-                        writer.println("leaves" + fileIndex + ".add(new StringBuilder(\"\")");
-                        appendCounter = 0;
+                        buffer.append(new String(bufferArray)).append("\\n");
                     }
                     else
                     {
-                        appendCounter++;
+                        lineCounter = 0;
+                        if(appendCounter > 5)
+                        {
+                            // System.out.println("NEW SB ADDED");
+                            writer.println(");\n\n");
+                            writer.println("leaves" + fileIndex + ".add(new StringBuilder(\"\")");
+                            appendCounter = 0;
+                        }
+                        else
+                        {
+                            appendCounter++;
+                        }
+                        writer.println(".append(\"" + buffer.toString() + "\")");
+                        buffer.setLength(0);
                     }
-                    writer.println(".append(\"" + buffer.toString() + "\")");
-                    buffer.setLength(0);
-                }
 
-                lineCounter++;
+                    lineCounter++;
                 //}
 
                 totalLineCounter++;
@@ -3170,9 +3734,9 @@ public class JunkBot implements BotAPI {
 
                  */
 
-            //System.out.println(sb.toString());
+                //System.out.println(sb.toString());
 
-            //return sb.toString();
+                //return sb.toString();
             //}
 
 
@@ -3363,16 +3927,19 @@ public class JunkBot implements BotAPI {
                 }
             }
         }
-
     }
 
-    // Gaddag following java implementation class
+    /**
+     * GADDAG implementation using GNode as the GADDAG Node.
+     */
     private class GADDAG
     {
         // Fields
         private GNode root;
 
-        // Constructor
+        /**
+         * Constructor for GADDAG
+         */
         public GADDAG()
         {
             root = null;
@@ -3387,7 +3954,6 @@ public class JunkBot implements BotAPI {
             {
                 ex.printStackTrace();
             }
-            System.out.println("Nodes: " + gNodeCounter);
         }
 
         // Methods
@@ -3455,13 +4021,15 @@ public class JunkBot implements BotAPI {
             return initNode; // Return the newly created Gaddag
         }
 
+        /**
+         * Method to build a branch of the GADDAG using a word and a node
+         * @param node Pass the node to be extended
+         * @param word Pass the word to be added
+         * @return GNode Returns the update GADDAG Node.
+         */
         public GNode buildBranch(GNode node, String word)
         {
-            branchCounter++;
             GNode curNode = node;
-
-            //System.out.println("Word: " + word);
-            //System.out.println("Word length: " + word.length());
 
             // For each character in the word except the last one
             for(int i = 0; i < word.length() - 1; i++)
@@ -3474,45 +4042,9 @@ public class JunkBot implements BotAPI {
                 {
                     curNode.addNewEnd(word.charAt(word.length() - 1));
                 }
-
-                if(curNode.childPointer > 100 && DEBUG)
-                {
-                    System.out.println("CurNode Children: " + Arrays.toString(curNode.getChildrenArray()));
-                    System.out.println("WEIRD...");
-                }
             }
 
             return curNode;
-        }
-
-        // TODO
-        public ArrayList<String> traverse(GNode root)
-        {
-            ArrayList<String> words = new ArrayList<>();
-
-            // For each letter in the arcs of the root
-            for(char c : root.getArcs())
-            {
-                // Get the child
-                GNode child = root.get(c);
-
-                // If child is not null
-                if(child != null)
-                {
-                    // Add each word from traversing the child into the list
-                    for(String s : traverse(child))
-                    {
-                        words.add("" + c + s);
-                    }
-                }
-            }
-
-            for(char end : root.getEndArray())
-            {
-                words.add("" + end);
-            }
-
-            return words;
         }
 
         /**
@@ -3527,17 +4059,16 @@ public class JunkBot implements BotAPI {
             ArrayList<Word> words = new ArrayList<>();
 
             // For each row and column
-            for(int r = 0; r < Board.BOARD_SIZE; r++)
+            for(int row = 0; row < Board.BOARD_SIZE; row++)
             {
-                for(int c = 0; c < Board.BOARD_SIZE; c++)
+                for(int col = 0; col < Board.BOARD_SIZE; col++)
                 {
                     // If the square is an anchor
-                    if(board.getSquare(r, c).isAnchor())
+                    if(board.getSquare(row, col).isAnchor())
                     {
-                        System.out.println("[" + r + ", " + c + "] is anchor!");
                         // Find words horizontally and vertically
-                        findHorizontal(0, r, c, board, frame, root, true, new Move(), words);
-                        findVertical(0, r, c, board, frame, root, true, new Move(), words);
+                        findHorizontal(0, row, col, board, frame, root, new Move(), words);
+                        findVertical(0, row, col, board, frame, root, new Move(), words);
                     }
                 }
             }
@@ -3545,67 +4076,81 @@ public class JunkBot implements BotAPI {
             return words;
         }
 
-        // Done
-        public void findHorizontal(int pos, int anchor_x, int anchor_y, BoardObj board, FrameObj frame, GNode oldArc, boolean reverse, Move initialMove, ArrayList<Word> words)
+        public void findHorizontal(int pos, int anchor_row, int anchor_col, BoardObj board, FrameObj frame, GNode oldArc, Move initialMove, ArrayList<Word> words)
         {
-            int curX = anchor_x + pos;
+            int curCol = anchor_col + pos; // Store current column
 
-            if(curX >= Board.BOARD_SIZE || curX < 0)
+            if(curCol >= Board.BOARD_SIZE || curCol < 0) // Check out of bounds
             {
                 return;
             }
 
-            if(board.squareIsOccupied(curX, anchor_y))
+            if(board.squareIsOccupied(anchor_row, curCol))
             {
                 // If occupied, get the letter on the square
-                char letter = board.getSquare(curX, anchor_y).getTile().getLetter();
+                char letter = board.getLetter(anchor_row, curCol);
                 GNode newArc = oldArc.get(letter); // Create new node by traversing oldArc using letter
                 Move newMove = new Move(initialMove);
-                newMove.addPlay(curX, anchor_y, letter); // Add the letter to the move
-                goOnHorizontal(pos, anchor_x, anchor_y, letter, board, frame, oldArc, newArc, reverse, newMove, words);
+                newMove.addPlay(anchor_row, curCol, letter); // Add the letter to the move
+                goOnHorizontal(pos, anchor_row, anchor_col, letter, board, frame, oldArc, newArc, newMove, words);
             }
-            else if(!frame.isEmpty()) // If we have letters to play
+            else if(!frame.isEmpty()) // If we have tiles to play
             {
                 // For each tile
                 for(Tile tile : frame.getTiles())
                 {
                     // If not a blank and a valid vertical placement for this square
-                    if(!tile.isBlank() && board.getSquare(curX, anchor_y).isValidHoriz(tile.getLetter()))
+                    if(!tile.isBlank() && board.getSquare(anchor_row, curCol).isValidVert(tile.getLetter()))
                     {
                         FrameObj frameCopy = frame.deepCopy(); // Copy on write
                         frameCopy.removeTile(tile); // Remove the tile
                         GNode newArc = oldArc.get(tile.getLetter()); // Traverse to this letter's node
                         Move newMove = new Move(initialMove);
-                        newMove.addPlay(curX, anchor_y, tile.getLetter()); // Add the move
-                        goOnHorizontal(pos, anchor_x, anchor_y, tile.getLetter(), board, frameCopy, oldArc, newArc, reverse, newMove, words);
+                        newMove.addPlay(anchor_row, curCol, tile.getLetter()); // Add the move
+                        goOnHorizontal(pos, anchor_row, anchor_col, tile.getLetter(), board, frameCopy, oldArc, newArc, newMove, words);
+                    }
+                    else if(tile.isBlank())
+                    {
+                        for(char letter : UtilityMethods.generateAlphabetSet())
+                        {
+                            if(board.getSquare(anchor_row, curCol).isValidVert(letter))
+                            {
+                                FrameObj frameCopy = frame.deepCopy();
+                                frameCopy.removeTile(tile);
+                                GNode newArc = oldArc.get(letter);
+                                Move newMove = new Move(initialMove);
+                                newMove.addPlay(anchor_row, curCol, letter);
+                                goOnHorizontal(pos, anchor_row, anchor_col, letter, board, frameCopy, oldArc, newArc, newMove, words);
+                            }
+                        }
                     }
                 }
             }
         }
 
-        // Done
-        public void goOnHorizontal(int pos, int anchor_x, int anchor_y, char letter, BoardObj board, FrameObj frame, GNode oldArc, GNode newArc, boolean reverse, Move move, ArrayList<Word> words)
+        // Reviewed
+        public void goOnHorizontal(int pos, int anchor_row, int anchor_col, char letter, BoardObj board, FrameObj frame, GNode oldArc, GNode newArc, Move move, ArrayList<Word> words)
         {
             // If a prefix
             if(pos <= 0)
             {
                 // If valid move ending and there is not letter left of it on the board
-                if(oldArc.isValidEnd(letter) && !board.getSquare(anchor_x + pos - 1, anchor_y).isOccupied() && !board.getSquare(anchor_x + 1, anchor_y).isOccupied())
+                if(oldArc.isValidEnd(letter) && !board.squareIsOccupied(anchor_row, anchor_col + pos - 1) && !board.squareIsOccupied(anchor_row, anchor_col + 1))
                 {
-                    recordWord(words, move, false);
+                    recordWord(board.deepCopy(), words, move, true);
                 }
 
                 // Continue creating prefixes
                 if(newArc != null)
                 {
-                    findHorizontal(pos-1, anchor_x, anchor_y, board, frame, newArc, reverse, move, words);
+                    findHorizontal(pos-1, anchor_row, anchor_col, board, frame, newArc, move, words);
 
                     newArc = newArc.get('#');
 
-                    // If prefixes can be produced
-                    if(newArc != null && !board.getSquare(anchor_x + pos - 1, anchor_y).isOccupied())
+                    // If suffixes can be produced
+                    if(newArc != null && !board.squareIsOccupied(anchor_row, anchor_col + pos - 1))
                     {
-                        findHorizontal(1, anchor_x, anchor_y, board, frame, newArc, false, move, words);
+                        findHorizontal(1, anchor_row, anchor_col, board, frame, newArc, move, words);
                     }
 
                 }
@@ -3613,37 +4158,37 @@ public class JunkBot implements BotAPI {
             else // Suffix as pos > 0
             {
                 // If valid move ending and there is not letter right of it on the board
-                if(oldArc.isValidEnd(letter) && !board.getSquare(anchor_x + pos + 1, anchor_y).isOccupied())
+                if(oldArc.isValidEnd(letter) && !board.squareIsOccupied(anchor_row, anchor_col + pos + 1))
                 {
-                    recordWord(words, move, false);
+                    recordWord(board.deepCopy(), words, move, true);
                 }
 
                 // If suffixes can be produced
-                if(newArc != null && !board.getSquare(anchor_x + pos + 1, anchor_y).isOccupied())
+                if(newArc != null && !board.squareIsOccupied(anchor_row, anchor_col + pos + 1))
                 {
                     oldArc = newArc;
-                    findHorizontal(pos + 1, anchor_x, anchor_y, board, frame, oldArc, reverse, move, words);
+                    findHorizontal(pos + 1, anchor_row, anchor_col, board, frame, oldArc, move, words);
                 }
             }
         }
 
-        public void findVertical(int pos, int anchor_x, int anchor_y, BoardObj board, FrameObj frame, GNode oldArc, boolean reverse, Move move, ArrayList<Word> words)
+        public void findVertical(int pos, int anchor_row, int anchor_col, BoardObj board, FrameObj frame, GNode oldArc, Move move, ArrayList<Word> words)
         {
-            int curY = anchor_y + pos;
+            int curRow = anchor_row + pos;
 
-            if(curY >= Board.BOARD_SIZE || curY < 0)
+            if(curRow >= Board.BOARD_SIZE || curRow < 0) // If out of bounds
             {
                 return;
             }
 
-            if(board.squareIsOccupied(anchor_x, curY))
+            if(board.squareIsOccupied(curRow, anchor_col))
             {
                 // If occupied, get the letter on the square
-                char letter = board.getSquare(anchor_x, curY).getTile().getLetter();
+                char letter = board.getLetter(curRow, anchor_col);
                 GNode newArc = oldArc.get(letter); // Create new node by traversing oldArc using letter
                 Move newMove = new Move(move);
-                newMove.addPlay(anchor_x, curY, letter); // Add the letter to the move
-                goOnVertical(pos, anchor_x, anchor_y, letter, board, frame, oldArc, newArc, reverse, newMove, words);
+                newMove.addPlay(curRow, anchor_col, letter); // Add the letter to the move
+                goOnVertical(pos, anchor_row, anchor_col, letter, board, frame, oldArc, newArc, newMove, words);
             }
             else if(!frame.isEmpty()) // If we have letters to play
             {
@@ -3651,41 +4196,56 @@ public class JunkBot implements BotAPI {
                 for(Tile tile : frame.getTiles())
                 {
                     // If not a blank and a valid vertical placement for this square
-                    if(!tile.isBlank() && board.getSquare(anchor_x, curY).isValidVert(tile.getLetter()))
+                    if(!tile.isBlank() && board.getSquare(curRow, anchor_col).isValidHoriz(tile.getLetter()))
                     {
                         FrameObj frameCopy = frame.deepCopy(); // Copy on write
                         frameCopy.removeTile(tile); // Remove the tile
                         GNode newArc = oldArc.get(tile.getLetter()); // Traverse to this letter's node
                         Move newMove = new Move(move);
-                        newMove.addPlay(new Play(anchor_x, curY, tile.getLetter())); // Add the move
-                        goOnVertical(pos, anchor_x, anchor_y, tile.getLetter(), board, frameCopy, oldArc, newArc, reverse, newMove, words);
+                        newMove.addPlay(curRow, anchor_col, tile.getLetter()); // Add the move
+                        goOnVertical(pos, anchor_row, anchor_col, tile.getLetter(), board, frameCopy, oldArc, newArc, newMove, words);
+                    }
+                    else if(tile.isBlank()) // If blank, need to check every possible letter
+                    {
+                        for(char letter : UtilityMethods.generateAlphabetSet())
+                        {
+                            if(board.getSquare(curRow, anchor_col).isValidHoriz(letter))
+                            {
+                                FrameObj frameCopy = frame.deepCopy();
+                                frameCopy.removeTile(tile);
+                                GNode newArc = oldArc.get(letter);
+                                Move newMove = new Move(move);
+                                newMove.addPlay(curRow, anchor_col, letter);
+                                goOnVertical(pos, anchor_row, anchor_col, letter, board, frameCopy, oldArc, newArc, newMove, words);
+                            }
+                        }
                     }
                 }
             }
         }
 
-        public void goOnVertical(int pos, int anchor_x, int anchor_y, char letter, BoardObj board, FrameObj frame, GNode oldArc, GNode newArc, boolean reverse, Move move, ArrayList<Word> words)
+        public void goOnVertical(int pos, int anchor_row, int anchor_col, char letter, BoardObj board, FrameObj frame, GNode oldArc, GNode newArc, Move move, ArrayList<Word> words)
         {
             // If a prefix
             if(pos <= 0)
             {
                 // If valid move ending and there is not letter left of it on the board
-                if(oldArc.isValidEnd(letter) && !board.getSquare(anchor_x + pos - 1, anchor_y).isOccupied() && !board.getSquare(anchor_x, anchor_y + 1).isOccupied())
+                if(oldArc.isValidEnd(letter) && !board.squareIsOccupied(anchor_row, anchor_col + pos - 1) && !board.squareIsOccupied(anchor_row + 1, anchor_col))
                 {
-                    recordWord(words, move, true);
+                    recordWord(board.deepCopy(), words, move, false);
                 }
 
                 // Continue creating prefixes
                 if(newArc != null)
                 {
-                    findVertical(pos-1, anchor_x, anchor_y, board, frame, newArc, false, move, words);
+                    findVertical(pos-1, anchor_row, anchor_col, board, frame, newArc, move, words);
 
                     newArc = newArc.get('#');
 
-                    // If prefixes can be produced
-                    if(newArc != null && !board.getSquare(anchor_x, anchor_y + pos - 1).isOccupied())
+                    // If suffixes can be produced
+                    if(newArc != null && !board.squareIsOccupied(anchor_row + pos - 1, anchor_col))
                     {
-                        findVertical(1, anchor_x, anchor_y, board, frame, newArc, false, move, words);
+                        findVertical(1, anchor_row, anchor_col, board, frame, newArc, move, words);
                     }
 
                 }
@@ -3693,99 +4253,172 @@ public class JunkBot implements BotAPI {
             else // Suffix as pos > 0
             {
                 // If valid move ending and there is not letter right of it on the board
-                if(oldArc.isValidEnd(letter) && !board.getSquare(anchor_x, anchor_y + pos + 1).isOccupied())
+                if(oldArc.isValidEnd(letter) && !board.squareIsOccupied(anchor_row + pos + 1, anchor_col))
                 {
-                    recordWord(words, move, true);
+                    recordWord(board.deepCopy(), words, move, false);
                 }
 
-                // If suffixes can be produced
-                if(newArc != null && !board.getSquare(anchor_x, anchor_y + pos + 1).isOccupied())
+                // If more suffixes can be produced
+                if(newArc != null && !board.squareIsOccupied(anchor_row + pos + 1, anchor_col))
                 {
                     oldArc = newArc;
-                    findVertical(pos + 1, anchor_x, anchor_y, board, frame, newArc, reverse, move, words);
+                    findVertical(pos + 1, anchor_row, anchor_col, board, frame, newArc, move, words);
                 }
             }
         }
 
-        private void recordWord(ArrayList<Word> words, Move m, boolean isHorizontal)
+        private void recordWord(BoardObj b, ArrayList<Word> words, Move m, boolean isHorizontal)
         {
-            /*
-            if(m.plays.get(0).getC() != m.plays.get(1).getC())
-            {
-                System.out.println("HORIZONTAL == TRUE == " + isHorizontal);
-            }
-            else
-            {
-                System.out.println("HORIZONTAL == FALSE == " + isHorizontal);
-            }
+            Word w = completeWord(b, m, isHorizontal);
 
-             */
+            ArrayList<Word> temp = new ArrayList<>();
+            temp.add(w);
 
-            sortMove(m, isHorizontal);
-
-            StringBuilder sb = new StringBuilder();
-
-            for(Play p : m.plays)
-            {
-                sb.append(p.getLetter());
-            }
-
-            /*
-
-                System.out.println("Word: " + sb.toString());
-
-                for(int i = 0; i < m.plays.size(); i++)
-                {
-                    System.out.println("Tile: " + m.plays.get(i).letter + " | Row: " + m.plays.get(i).getR() + " | Col: " + m.plays.get(i).getC() );
-                }
-                System.out.println("Is horizontal: " + isHorizontal);
-                System.out.println();
-
-             */
-
-            Word w = new Word(m.plays.get(0).getR(), m.plays.get(0).getC(), isHorizontal, sb.toString());
-
-            /*
-            System.out.println();
-            for(int i = 0; i < w.getLetters().length(); i++)
-            {
-                if(w.isHorizontal())
-                {
-                    System.out.println("HORIZONTAL: Tile: " + w.getLetters().charAt(i) + " | Row: " + (w.getFirstRow()) + " | Col: " + (w.getFirstColumn() + i));
-                }
-                else
-                {
-                    System.out.println("VERTICAL: Tile: " + w.getLetters().charAt(i) + " | Row: " + (w.getFirstRow() + i) + " | Col: " + (w.getFirstColumn()));
-                }
-            }
-            System.out.println();
-
-            ArrayList<Word> testWords = new ArrayList<>();
-            testWords.add(w);
-
-             */
-
-            /*
-            if(dictionary.areWords(testWords))
+            if(dictionary.areWords(temp))
             {
                 words.add(w);
             }
-
-             */
-
-            words.add(w);
+            else if(DEBUG)
+            {
+                System.out.println(m.toString());
+                System.out.println("ERROR INVALID WORD: " + w) ;
+            }
         }
 
         private void sortMove(Move m, boolean isHorizontal)
         {
             if(isHorizontal) // X changes, y does not
             {
-                m.plays.sort(Comparator.comparingInt(Play::getC));
+                m.placements.sort(Comparator.comparingInt(Placement::getCol));
             }
             else
             {
-                m.plays.sort(Comparator.comparingInt(Play::getR));
+                m.placements.sort(Comparator.comparingInt(Placement::getRow));
             }
+        }
+
+        public Word completeWord(BoardObj b, Move m, boolean isHorizontal)
+        {
+            sortMove(m, isHorizontal);
+
+            m = includeSurroundingLetterS(b, m, isHorizontal);
+
+            StringBuilder sb = new StringBuilder();
+
+            for(Placement p : m.placements)
+            {
+                sb.append(p.getLetter());
+            }
+
+            if(DEBUG)
+            {
+                System.out.println("Recorded Word: " + sb.toString());
+                System.out.print(m.toString());
+
+                System.out.println(b.toString());
+            }
+
+            Word w = new Word(m.placements.get(0).getRow(), m.placements.get(0).getCol(), isHorizontal, sb.toString());
+
+            if(DEBUG)
+            {
+                if(w.isHorizontal())
+                {
+                    System.out.println("CHECKING PREFIX...");
+                    System.out.println("Left: " + b.squareIsOccupied(w.getFirstRow(), w.getFirstColumn()-1));
+
+                    System.out.println("CHECKING SUFFIX...");
+                    System.out.println("Right: " + b.squareIsOccupied(w.getLastRow(), w.getLastColumn()+1));
+                }
+                else
+                {
+                    System.out.println("CHECKING PREFIX...");
+                    System.out.println("Above: " + b.squareIsOccupied(w.getFirstRow()-1, w.getFirstColumn()));
+
+                    System.out.println("CHECKING SUFFIX...");
+                    System.out.println("Below: " + b.squareIsOccupied(w.getLastRow()+1, w.getLastColumn()));
+                }
+            }
+
+            return w;
+        }
+
+        public Move includeSurroundingLetterS(BoardObj b, Move m, boolean isHorizontal)
+        {
+            //System.out.println(b.toString());
+            Move completedMove = new Move(m);
+
+            // Add letters before this word and after it to the move
+
+            if(isHorizontal)
+            {
+                int prefixCol = completedMove.placements.get(0).getCol();
+                int row = completedMove.placements.get(0).getRow();
+
+                // Traverse to the beginning of the prefix, adding each new placement as you go
+                while(b.squareIsOccupied(row, prefixCol))
+                {
+                    if(!m.placements.contains(new Placement(row, prefixCol, b.getLetter(row, prefixCol))))
+                    {
+                        //System.out.println("Letter added: " + b.getLetter(row, prefixCol) + " , isOccupied: " + b.getSquare(row, prefixCol).isOccupied());
+                        completedMove.placements.add(0, new Placement(row, prefixCol, b.getLetter(row, prefixCol)));
+                    }
+
+                    prefixCol--;
+                }
+
+                //System.out.println("HORIZONTAL PREFIX-CREATION COMPLETED: " + completedMove.toString());
+
+                int suffixCol = m.placements.get(0).getCol()+1;
+
+                // Build suffix
+                while(b.squareIsOccupied(row, suffixCol))
+                {
+                    if(!m.placements.contains(new Placement(row, suffixCol, b.getLetter(row, suffixCol))))
+                    {
+                        //System.out.println("Letter added: " + b.getLetter(row, suffixCol) + " , isOccupied: " + b.getSquare(row, suffixCol).isOccupied());
+                        completedMove.placements.add(completedMove.placements.size()-1, new Placement(row, suffixCol, b.getLetter(row, suffixCol)));
+                    }
+                    suffixCol++;
+                }
+
+                //System.out.println("HORIZONTAL SUFFIX-CREATION COMPLETED: " + completedMove.toString());
+            }
+            else
+            {
+                int prefixRow = completedMove.placements.get(0).getRow()-1;
+                int col = completedMove.placements.get(0).getCol();
+
+                // Traverse to the beginning of the prefix
+                while(b.squareIsOccupied(prefixRow, col))
+                {
+                    if(!m.placements.contains(new Placement(prefixRow, col, b.getLetter(prefixRow, col))))
+                    {
+                        //System.out.println("Letter added: " + b.getLetter(prefixRow, col) + " , isOccupied: " + b.getSquare(prefixRow, col).isOccupied());
+                        completedMove.placements.add(0, new Placement(prefixRow, col, b.getLetter(prefixRow, col)));
+                    }
+                    prefixRow--;
+                }
+
+                //System.out.println("VERTICAL PREFIX-CREATION COMPLETED: " + completedMove.toString());
+
+                int suffixRow = m.placements.get(0).getRow()+1;
+
+                // Build suffix
+                while(b.squareIsOccupied(suffixRow, col))
+                {
+                    if(!m.placements.contains(new Placement(suffixRow, col, b.getLetter(suffixRow, col))))
+                    {
+                        //System.out.println("Letter added: " + b.getLetter(suffixRow, col) + " , isOccupied: " + b.getSquare(suffixRow, col).isOccupied());
+                        completedMove.placements.add(completedMove.placements.size()-1, new Placement(suffixRow, col, b.getLetter(suffixRow, col)));
+                    }
+                    suffixRow++;
+                }
+
+                //System.out.println("VERTICAL SUFFIX-CREATION COMPLETED: " + completedMove.toString());
+            }
+
+            return completedMove;
         }
 
         // Getters & Setters
@@ -3805,7 +4438,7 @@ public class JunkBot implements BotAPI {
         GNode[] children;
         byte[] arcs;
         byte[] end;
-        short childPointer = 0;
+        byte childPointer = 0;
         byte endPointer = 0;
 
         @Override
@@ -3820,15 +4453,12 @@ public class JunkBot implements BotAPI {
             children = new GNode[1];
             arcs = new byte[1];
             end = new byte[1];
-            gNodeCounter++;
         }
 
         // Methods
         public GNode put(char newArc, GNode node)
         {
             GNode child = this.get(newArc);
-
-            putCounter++;
 
             if (child == null)  // If there is no child yet
             {
@@ -3846,12 +4476,6 @@ public class JunkBot implements BotAPI {
                 //System.out.println("CP incremented: " + childPointer);
                 childPointer++;
 
-                if(childPointer > maxPutCounter)
-                {
-                    maxPutCounter = childPointer;
-                }
-
-
                 if(childPointer > 100)
                 {
                     if(DEBUG)
@@ -3861,8 +4485,6 @@ public class JunkBot implements BotAPI {
                         System.out.println("Arcs length: " + arcs.length);
                         System.out.println("Num Children: " + childPointer);
                     }
-
-                    invalidPutCounter++;
                 }
 
 
@@ -4064,58 +4686,111 @@ public class JunkBot implements BotAPI {
         private byte charToByte(char c) {
             return (byte) (c & 0x00FF);
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            GNode gNode = (GNode) o;
+            return childPointer == gNode.childPointer &&
+                    endPointer == gNode.endPointer &&
+                    Arrays.equals(children, gNode.children) &&
+                    Arrays.equals(getArcs(), gNode.getArcs()) &&
+                    Arrays.equals(end, gNode.end);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = Objects.hash(childPointer, endPointer);
+            result = 31 * result + Arrays.hashCode(children);
+            result = 31 * result + Arrays.hashCode(getArcs());
+            result = 31 * result + Arrays.hashCode(end);
+            return result;
+        }
     }
 
+    /**
+     * Class for representing a move in Scrabble
+     */
     class Move
     {
-        ArrayList<Play> plays;
+        ArrayList<Placement> placements;
 
         public Move()
         {
-            plays = new ArrayList<>();
+            placements = new ArrayList<>();
         }
 
         public Move(Move other)
         {
-            this.plays = new ArrayList<>(other.plays);
+            this.placements = new ArrayList<>(other.placements);
         }
 
-        public void addPlay(int x, int y, char c)
+        public void addPlay(int row, int col, char c)
         {
-            plays.add(new Play(x, y, c));
+            placements.add(new Placement(row, col, c));
         }
 
-        public void addPlay(Play p)
+        public void addPlay(Placement p)
         {
-            plays.add(p);
+            placements.add(p);
+        }
+
+        @Override
+        public String toString()
+        {
+            StringBuilder sb = new StringBuilder();
+
+            for(Placement p : placements)
+            {
+                sb.append("Char: " + p.getLetter() + " | Row: " + p.getRow() + " | Col: " + p.getCol() + "\n");
+            }
+
+            return sb.toString();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Move move = (Move) o;
+            return placements.equals(move.placements);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(placements);
         }
     }
 
-    class Play
+    /**
+     * Class for representing a letter placement
+     */
+    class Placement
     {
-        int r, c;
+        int row, col;
         char letter;
 
-        public Play(int r, int c, char letter) {
-            this.r = r;
-            this.c = c;
+        public Placement(int row, int col, char letter) {
+            this.row = row;
+            this.col = col;
             this.letter = letter;
         }
 
-        public int getR() {
-            return r;
+        public int getRow() {
+            return row;
         }
 
-        public void setR(int r) {
-            this.r = r;
+        public void setRow(int row) {
+            this.row = row;
         }
 
-        public int getC() {
-            return c;
+        public int getCol() {
+            return col;
         }
 
-        public void setC(int c) {
-            this.c = c;
+        public void setCol(int col) {
+            this.col = col;
         }
 
         public char getLetter() {
@@ -4125,8 +4800,26 @@ public class JunkBot implements BotAPI {
         public void setLetter(char letter) {
             this.letter = letter;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Placement placement = (Placement) o;
+            return getRow() == placement.getRow() &&
+                    getCol() == placement.getCol() &&
+                    getLetter() == placement.getLetter();
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(getRow(), getCol(), getLetter());
+        }
     }
 
+    /**
+     * Class with a collection of useful utility methods
+     */
     static class UtilityMethods
     {
         /**
@@ -4195,30 +4888,11 @@ public class JunkBot implements BotAPI {
     }
 }
 
-
-class WordWithEquals
-{
-    Word w;
-
-    public WordWithEquals(Word w) {
-        this.w = w;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        WordWithEquals that = (WordWithEquals) o;
-        return Bot0.UtilityMethods.areEqual(w, that.w);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(w.getFirstColumn(), w.getFirstRow(), w.getLetters(), w.isHorizontal(), w.getDesignatedLetters());
-    }
-}
-
-/*
+/**
+ * Class for storing key-value pairs.
+ * @param <K> Key
+ * @param <V> value
+ */
 class Pair <K, V>
 {
     K key;
@@ -4247,4 +4921,27 @@ class Pair <K, V>
     }
 }
 
+/**
+ * Class which effectively extends the Word class with equals() and hashCode() methods.
  */
+class WordWithEquals
+{
+    Word w;
+
+    public WordWithEquals(Word w) {
+        this.w = w;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        WordWithEquals that = (WordWithEquals) o;
+        return JunkBot.UtilityMethods.areEqual(w, that.w);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(w.getFirstColumn(), w.getFirstRow(), w.getLetters(), w.isHorizontal(), w.getDesignatedLetters());
+    }
+}
